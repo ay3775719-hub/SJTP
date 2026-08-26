@@ -1,0 +1,14 @@
+import { initialMigration } from './001_initial'
+import { smartCollectionRulesMigration } from './002_smart_collection_rules'
+import { aiAssetUnderstandingMigration } from './003_ai_asset_understanding'
+import { multiProviderAIMigration } from './004_multi_provider_ai'
+import { codexBatchRecognitionMigration } from './005_codex_batch_recognition'
+import { minimalAIMetadataMigration } from './006_minimal_ai_metadata'
+import { collectionSuggestionsMigration } from './007_collection_suggestions'
+import { naturalLanguageSearchMigration } from './008_natural_language_search'
+import { visualSimilarityMigration } from './009_visual_similarity'
+import { duplicateDetectionMigration } from './010_duplicate_detection'
+import { museAgentMigration } from './011_muse_agent'
+import { webCollectorMigration } from './012_web_collector'
+
+export const migrations = [initialMigration, smartCollectionRulesMigration, aiAssetUnderstandingMigration, multiProviderAIMigration, codexBatchRecognitionMigration, minimalAIMetadataMigration, collectionSuggestionsMigration, naturalLanguageSearchMigration, visualSimilarityMigration, duplicateDetectionMigration, museAgentMigration, webCollectorMigration] as const

@@ -1,0 +1,25 @@
+Muse 0.1.0 Windows 内测分享包
+================================
+
+包含：
+
+- Muse Windows x64 安装程序
+- Chrome / Edge 共用的 Manifest V3 浏览器扩展 0.2.1
+- Web Collector Native Messaging Host
+- 中文安装说明
+
+本版本重点：
+
+- 网页图片右键保存到 Muse
+- 所有普通 HTTP/HTTPS 网站共用同一套右键采集，不包含站点白名单
+- 保存原网页与图片来源
+- Exact Duplicate 自动复用原 Asset，并增加来源
+- 本地颜色、视觉 Embedding、语义索引后台生成
+- Auto Codex Analysis 关闭时，采集过程不会调用 Codex
+- 修复生产主进程日志管道 EPIPE 崩溃
+
+当前限制：
+
+- 浏览器扩展尚未上架 Chrome Web Store / Edge Add-ons，需要开发者模式加载。
+- Windows 安装包尚未使用商业代码签名证书，可能出现 SmartScreen 提示。
+- 需要浏览器登录 Cookie 的受限图片暂不支持。

@@ -1,0 +1,5 @@
+-- Canonical SQL is executed from src/main/database/migrations/001_initial.ts so it is bundled
+-- with the Electron main process. This file is the human-readable migration manifest.
+-- Version: 1 / 001_initial
+-- Tables: settings, assets, thumbnails, folders, asset_folders, tags, asset_tags,
+-- ai_metadata, asset_colors, smart_collections, assets_fts, schema_migrations.

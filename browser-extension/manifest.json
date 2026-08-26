@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Muse Web Collector",
+  "version": "0.3.8",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlfHGSjgX14+mnNLLgasmmGwL9EUOHR09tIxtJs8AZGwTm34XbSfoYDcJbrX/+tvRhe4akRjR5zYlPx/de6APvSE1P+2p9kmrOIMQ6ukJwtvIN4FgQl7uHT+5NtdPGUdMB5zQDHd05QvA2SkFgnhfV0DJ+WtiJ1NOMAtLmilJqHDfkgF0jQ0JhTYntf6UM0KckIP6iv5TmeUCRsLwQSoy7FxcIV9mw8Iqt4x/ZhgetZEg1LUXZBhNzyPJpWkZeEgU/bi2HxgZb5GFdSQA0aeAVlm5euwGQwQhlEtuF9Ykh8HDWSkoC8m1892GVxM/tlSmxbnP2z7jQJBEJa5HS72LZQIDAQAB",
+  "description": "将用户主动选择的网页图片保存到本机 Muse 素材库。",
+  "permissions": ["contextMenus", "storage", "activeTab", "scripting", "nativeMessaging"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content/imageContextMenu.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    }
+  ],
+  "background": { "service_worker": "src/background.js", "type": "module" },
+  "action": { "default_title": "Muse Web Collector", "default_popup": "src/popup/popup.html" }
+}

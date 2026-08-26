@@ -1,0 +1,109 @@
+{
+  "name": "muse-visual-library",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Muse — local-first AI visual library",
+  "main": "out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "build:extension": "node scripts/build-extension.mjs",
+    "build:native-host": "node scripts/build-native-host.mjs",
+    "dist": "npm run build && electron-builder",
+    "prepare:codex-runtime": "node scripts/prepare-codex-runtime.mjs",
+    "dist:win": "npm run prepare:codex-runtime && npm run build:native-host && npm run build && npm run build:extension && electron-builder --win nsis portable",
+    "dist:mac": "npm run build && electron-builder --mac dmg",
+    "pack": "npm run build:native-host && npm run build && electron-builder --dir",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run --config vitest.config.ts && npm run test:services",
+    "test:services": "node scripts/smoke-main.mjs",
+    "test:visual-quality": "node scripts/visual-quality-report.mjs",
+    "benchmark:visual-search": "node scripts/benchmark-visual-search.mjs",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@huggingface/transformers": "^3.8.1",
+    "@phosphor-icons/react": "^2.1.10",
+    "electron-log": "^5.4.3",
+    "nanoid": "^5.1.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sharp": "^0.34.4",
+    "zod": "^4.1.11",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^5.0.0",
+    "jsdom": "^27.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.muse.visual.library",
+    "productName": "Muse",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*",
+      "node_modules/onnxruntime-node/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "extraResources": [
+        {
+          "from": "release/native-host",
+          "to": "native-host"
+        },
+        {
+          "from": "vendor/codex/win32-x64",
+          "to": "codex"
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "Muse-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Muse-Portable-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.graphics-design"
+    },
+    "dmg": {
+      "title": "Muse ${version}"
+    }
+  }
+}

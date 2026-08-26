@@ -1,0 +1,44 @@
+node_modules/
+out/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+design-qa-artifacts/
+node_modules.install-broken*/
+
+# Muse build and distribution outputs
+release/
+release-viewer/
+artifacts/
+.tmp/
+
+# Local runtimes and heavyweight binaries are prepared by scripts
+vendor/
+.qa-codex.exe
+reference-match/
+
+# Real or generated libraries, test workspaces and user media
+.qa-*/
+.viewer-qa-*/
+development-assets/
+reports/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local QA screenshots
+muse-empty-library*.png
+muse-empty-library*.png.json
+
+# Credentials and machine-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+*.key
