@@ -185,7 +185,7 @@ export function Sidebar(): React.JSX.Element {
       </div>
       <div className="sidebar-bottom-actions">
         <button className="sidebar-agent" onClick={() => void useMuseAgentStore.getState().openPanel()}><ChatCircleDots size={17} weight="duotone" />Muse AI</button>
-        <button className="sidebar-settings" onClick={() => useAIStore.getState().openSettings()}><Gear size={16} />AI 设置 <small>v{bootstrap.appVersion}</small></button>
+        <button className="sidebar-settings" onClick={() => useAIStore.getState().openSettings()}><Gear size={16} />设置 <small>v{bootstrap.appVersion}</small></button>
       </div>
 
       {dialog && (

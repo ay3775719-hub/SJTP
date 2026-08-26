@@ -536,6 +536,20 @@ export interface LibraryStats {
   trash: number
 }
 
+export interface LibraryBackupResult {
+  path: string
+  createdAt: string
+  assetCount: number
+  folderCount: number
+  bytes: number
+}
+
+export type LibraryTransferStatus =
+  | { state: 'idle' }
+  | { state: 'backing_up'; destinationPath: string }
+  | { state: 'completed'; destinationPath: string; result: LibraryBackupResult }
+  | { state: 'failed'; destinationPath?: string; error: string }
+
 export interface BootstrapPayload {
   appVersion: string
   libraryName: string

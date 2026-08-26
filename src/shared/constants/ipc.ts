@@ -31,7 +31,8 @@ export const IPC = {
     openFileDialog: 'desktop:open-file-dialog', openFolderDialog: 'desktop:open-folder-dialog',
     showItemInFolder: 'desktop:show-item-in-folder', openExternal: 'desktop:open-external',
     copyFile: 'desktop:copy-file', copyImage: 'desktop:copy-image', copyAssets: 'desktop:copy-assets', getLibraryPath: 'desktop:get-library-path',
-    openLibraryFolder: 'desktop:open-library-folder', getPlatform: 'desktop:get-platform'
+    openLibraryFolder: 'desktop:open-library-folder', getPlatform: 'desktop:get-platform',
+    libraryTransferStatus: 'desktop:library-transfer-status', backupLibrary: 'desktop:backup-library', openExistingLibrary: 'desktop:open-existing-library'
   },
   folders: {
     list: 'folders:list', create: 'folders:create', rename: 'folders:rename', remove: 'folders:remove',

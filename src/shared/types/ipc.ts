@@ -1,4 +1,4 @@
-import type { AIModelInfo, AIProviderId, AIProviderInfo, AIQueueStatus, AISettings, AISmartCollectionSuggestion, AITermType, AppPreferences, Asset, AssetPage, AssetQuery, AssetWebSource, BootstrapPayload, CodexAccountState, CodexLoginStartResult, CodexUsageState, CollectionSuggestionResult, DesktopAction, DuplicateGroup, DuplicateGroupKind, DuplicateScanStatus, Folder, IgnoredCollectionSuggestion, ImportResult, LibraryChangeEvent, MuseAgentContextSnapshot, MuseAgentConversation, MuseAgentEvent, MuseAgentMessage, MuseAgentState, NaturalSearchChip, NaturalSearchHistoryItem, NaturalSearchIntent, NaturalSearchParseResult, ProviderConnectionResult, SmartCollection, SmartCollectionInput, Tag, TrashPurgeResult, VisualIndexStatus, VisualSimilarityResult, WebCollectorPairingRequest, WebCollectorStatus } from './domain'
+import type { AIModelInfo, AIProviderId, AIProviderInfo, AIQueueStatus, AISettings, AISmartCollectionSuggestion, AITermType, AppPreferences, Asset, AssetPage, AssetQuery, AssetWebSource, BootstrapPayload, CodexAccountState, CodexLoginStartResult, CodexUsageState, CollectionSuggestionResult, DesktopAction, DuplicateGroup, DuplicateGroupKind, DuplicateScanStatus, Folder, IgnoredCollectionSuggestion, ImportResult, LibraryBackupResult, LibraryChangeEvent, LibraryTransferStatus, MuseAgentContextSnapshot, MuseAgentConversation, MuseAgentEvent, MuseAgentMessage, MuseAgentState, NaturalSearchChip, NaturalSearchHistoryItem, NaturalSearchIntent, NaturalSearchParseResult, ProviderConnectionResult, SmartCollection, SmartCollectionInput, Tag, TrashPurgeResult, VisualIndexStatus, VisualSimilarityResult, WebCollectorPairingRequest, WebCollectorStatus } from './domain'
 
 export interface MuseAPI {
   app: {
@@ -70,6 +70,9 @@ export interface MuseAPI {
     getLibraryPath(): Promise<string>
     openLibraryFolder(): Promise<void>
     getPlatform(): Promise<'win32' | 'darwin' | 'linux'>
+    libraryTransferStatus(): Promise<LibraryTransferStatus>
+    backupLibrary(): Promise<LibraryBackupResult | null>
+    openExistingLibrary(): Promise<{ switched: boolean; path?: string }>
   }
   folders: {
     list(): Promise<Folder[]>

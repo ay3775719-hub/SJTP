@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowClockwise, CheckCircle, Cloud, Cpu, HardDrives, Key, LockKey, Pause, Play, PlugsConnected, SignOut, Sparkle, WarningCircle, X } from '@phosphor-icons/react'
-import type { AIProviderId, AIRunMode, WebCollectorStatus } from '@shared/types/domain'
+import { Archive, ArrowClockwise, CheckCircle, Cloud, Cpu, FolderOpen, HardDrives, Key, LockKey, Pause, Play, PlugsConnected, SignOut, Sparkle, WarningCircle, X } from '@phosphor-icons/react'
+import type { AIProviderId, AIRunMode, LibraryBackupResult, WebCollectorStatus } from '@shared/types/domain'
 import { useAIStore } from '../../stores/useAIStore'
 import { useVisualSimilarityStore } from '../../stores/useVisualSimilarityStore'
 import { museApi } from '../../api/client'
@@ -43,8 +43,9 @@ export function AISettingsDialog(): React.JSX.Element | null {
 
   return <div className="smart-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) store.closeSettings() }}>
     <section className="ai-settings-modal ai-provider-settings" role="dialog" aria-modal="true" aria-labelledby="ai-settings-title">
-      <header><div><h2 id="ai-settings-title">AI 设置</h2><p>Codex / ChatGPT 使用官方托管登录，不需要 OpenAI API Key。</p></div><button onClick={store.closeSettings} aria-label="关闭"><X size={18} /></button></header>
+      <header><div><h2 id="ai-settings-title">Muse 设置</h2><p>管理 Library 迁移、本地索引和可选 AI 能力。</p></div><button onClick={store.closeSettings} aria-label="关闭"><X size={18} /></button></header>
       <div className="ai-settings-content">
+        <LibraryTransferSettings />
         <div className="settings-group"><span className="settings-group-label">AI 模式</span><div className="ai-mode-switch">{(Object.keys(MODE_COPY) as AIRunMode[]).map((mode) => <button key={mode} className={settings.runMode === mode ? 'active' : ''} onClick={() => selectMode(mode)}>{mode === 'local-only' ? <Cpu size={15} /> : mode === 'cloud-only' ? <Cloud size={15} /> : <PlugsConnected size={15} />}{MODE_COPY[mode].label}</button>)}</div></div>
         <div className="settings-field"><span>AI 引擎</span><select value={settings.providerId} onChange={(event) => selectProvider(event.target.value as AIProviderId)}>{allowedProviders.map((item) => <option key={item.id} value={item.id}>{item.name}{item.id === 'codex-chatgpt' ? ' · 推荐' : ` · ${item.kind === 'local' ? '本地' : item.kind === 'cloud' ? '云端' : '自定义'}`}</option>)}</select></div>
 
@@ -85,6 +86,38 @@ export function AISettingsDialog(): React.JSX.Element | null {
       <footer><button className="primary" onClick={store.closeSettings}>完成</button></footer>
     </section>
   </div>
+}
+
+function LibraryTransferSettings(): React.JSX.Element {
+  const [libraryPath, setLibraryPath] = useState('')
+  const [busy, setBusy] = useState<'backup' | 'switch' | null>(null)
+  const [result, setResult] = useState<LibraryBackupResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { void museApi.desktop.getLibraryPath().then(setLibraryPath) }, [])
+  const backup = async (): Promise<void> => {
+    setBusy('backup'); setError(null)
+    try { setResult(await museApi.desktop.backupLibrary()) }
+    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+    finally { setBusy(null) }
+  }
+  const openExisting = async (): Promise<void> => {
+    setBusy('switch'); setError(null)
+    try { await museApi.desktop.openExistingLibrary() }
+    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+    finally { setBusy(null) }
+  }
+  return <section className="library-transfer-settings">
+    <div className="visual-index-settings-title"><div><HardDrives size={17} /><span><strong>Library 备份与迁移</strong><small>换电脑后仍保留文件夹分组、标签、收藏、来源与 AI 数据</small></span></div><em className="ready">本地完整保存</em></div>
+    <div className="library-current-path" title={libraryPath}><span>当前 Library</span><strong>{libraryPath || '正在读取…'}</strong></div>
+    <div className="library-transfer-actions">
+      <button className="visual-index-primary" disabled={busy !== null} onClick={() => void backup()}><Archive size={15} />{busy === 'backup' ? '正在备份…' : '备份整个 Library'}</button>
+      <button disabled={busy !== null} onClick={() => void openExisting()}><FolderOpen size={15} />{busy === 'switch' ? '正在切换…' : '打开已有 Library'}</button>
+      <button onClick={() => void museApi.desktop.openLibraryFolder()}><FolderOpen size={15} />打开当前文件夹</button>
+    </div>
+    {result && <div className="library-backup-result"><CheckCircle size={16} weight="fill" /><span><strong>备份完成 · {result.assetCount.toLocaleString('zh-CN')} 项素材 · {result.folderCount.toLocaleString('zh-CN')} 个分组</strong><small>{formatBytes(result.bytes)} · {result.path}</small></span></div>}
+    {error && <p className="settings-error">{error}</p>}
+    <div className="local-privacy"><LockKey size={16} /><span>备份包含原图和 muse.db。新电脑选择该 Library 后，Muse 会自动修正盘符和路径；不会上传到云端。</span></div>
+  </section>
 }
 
 function WebCollectorSettings(): React.JSX.Element {

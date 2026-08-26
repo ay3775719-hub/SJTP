@@ -53,6 +53,7 @@ import { WebCollectorService } from './services/webCollector/WebCollectorService
 import { WebCollectorBridge } from './services/webCollector/WebCollectorBridge'
 import { WebCollectorNativeBridge } from './services/webCollector/WebCollectorNativeBridge'
 import { registerNativeMessagingHost } from './services/webCollector/NativeMessagingRegistration'
+import { LibraryTransferService, relocateManagedPaths } from './services/filesystem/LibraryTransferService'
 
 if (process.env.MUSE_DISABLE_HARDWARE_ACCELERATION === '1') app.disableHardwareAcceleration()
 protocol.registerSchemesAsPrivileged([{ scheme: 'muse', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }])
@@ -273,10 +274,13 @@ function createWindow(stateService: WindowStateService): BrowserWindow {
 
 app.whenReady().then(async () => {
   if (!singleInstance) return
-  const libraryRoot = await new LibraryLocationService().resolve()
+  const libraryLocation = new LibraryLocationService()
+  const libraryRoot = await libraryLocation.resolve()
   if (!libraryRoot) { app.quit(); return }
   library = ensureLibrary(libraryRoot)
   database = new DatabaseService(library.database)
+  const relocatedAssets = relocateManagedPaths(database.db, library.root)
+  if (relocatedAssets) logger.info('Relocated managed Library paths', { root: library.root, assets: relocatedAssets })
   const toLocalUrl = (path: string): string => `muse://local/${encodePath(path)}`
   const assets = new AssetRepository(database.db, toLocalUrl)
   await new WebAssetFormatNormalizer(database.db, library.backups).normalizeLegacyAssets()
@@ -346,6 +350,7 @@ app.whenReady().then(async () => {
   const assetSources = new AssetSourceRepository(database.db)
   const webCollectorRepository = new WebCollectorRepository(database.db)
   const webCollectorPairing = new WebCollectorPairingService(webCollectorRepository)
+  const libraryTransfer = new LibraryTransferService(database.db, library, app.getVersion())
   const webCollector = new WebCollectorService(
     new WebImageDownloader(join(library.cache, 'web-collector')),
     importer, assets, assetSources,
@@ -377,7 +382,7 @@ app.whenReady().then(async () => {
     }
   })
 
-  registerIpc({ assets, trash, importer, folders, tags, settings, smartCollections, collectionSuggestions, library, ai, search, visualSimilarity: visualEmbedding, duplicates, agent, assetSources, webCollector: webCollectorBridge, webCollectorPairing })
+  registerIpc({ assets, trash, importer, folders, tags, settings, smartCollections, collectionSuggestions, library, ai, search, visualSimilarity: visualEmbedding, duplicates, agent, assetSources, webCollector: webCollectorBridge, webCollectorPairing, libraryTransfer, libraryLocation })
   ai.queue.start()
   localColors.startBackfill()
   void localSemanticSearch.initialize().catch((error) => logger.warn('Local semantic search initialization deferred', serializeError(error)))

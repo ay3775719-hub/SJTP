@@ -77,7 +77,10 @@ const api: MuseAPI = {
     copyAssets: (assetIds) => ipcRenderer.invoke(IPC.desktop.copyAssets, assetIds),
     getLibraryPath: () => ipcRenderer.invoke(IPC.desktop.getLibraryPath),
     openLibraryFolder: () => ipcRenderer.invoke(IPC.desktop.openLibraryFolder),
-    getPlatform: () => ipcRenderer.invoke(IPC.desktop.getPlatform)
+    getPlatform: () => ipcRenderer.invoke(IPC.desktop.getPlatform),
+    libraryTransferStatus: () => ipcRenderer.invoke(IPC.desktop.libraryTransferStatus),
+    backupLibrary: () => ipcRenderer.invoke(IPC.desktop.backupLibrary),
+    openExistingLibrary: () => ipcRenderer.invoke(IPC.desktop.openExistingLibrary)
   },
   folders: {
     list: () => ipcRenderer.invoke(IPC.folders.list),

@@ -1,6 +1,6 @@
 {
   "name": "muse-visual-library",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Muse — local-first AI visual library",
   "main": "out/main/index.js",

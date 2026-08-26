@@ -30,6 +30,9 @@ import type { WebCollectorBridge } from '../services/webCollector/WebCollectorBr
 import type { WebCollectorPairingService } from '../services/webCollector/WebCollectorPairingService'
 import { museAgentApprovalResolutionSchema, museAgentContextSchema, museAgentConversationListSchema, museAgentMessageListSchema, museAgentSendSchema } from '@shared/schemas/museAgent'
 import { ClipboardService } from '../services/clipboard/ClipboardService'
+import type { LibraryTransferService } from '../services/filesystem/LibraryTransferService'
+import { validateExistingLibrary } from '../services/filesystem/LibraryTransferService'
+import type { LibraryLocationService } from '../services/desktop/LibraryLocationService'
 
 interface IpcDependencies {
   assets: AssetRepository
@@ -49,6 +52,8 @@ interface IpcDependencies {
   assetSources: AssetSourceRepository
   webCollector: WebCollectorBridge
   webCollectorPairing: WebCollectorPairingService
+  libraryTransfer: LibraryTransferService
+  libraryLocation: LibraryLocationService
 }
 
 const idListSchema = z.array(idSchema).min(1).max(5000)
@@ -258,6 +263,41 @@ export function registerIpc(dependencies: IpcDependencies): void {
   ipcMain.handle(IPC.desktop.getLibraryPath, () => dependencies.library.root)
   ipcMain.handle(IPC.desktop.openLibraryFolder, () => shell.openPath(dependencies.library.root))
   ipcMain.handle(IPC.desktop.getPlatform, () => normalizePlatform())
+  ipcMain.handle(IPC.desktop.libraryTransferStatus, () => dependencies.libraryTransfer.status())
+  ipcMain.handle(IPC.desktop.backupLibrary, async () => {
+    const selected = await dialog.showOpenDialog({
+      title: '选择 Muse Library 备份保存位置',
+      buttonLabel: '备份到这里',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (selected.canceled || !selected.filePaths[0]) return null
+    try { return await dependencies.libraryTransfer.backupTo(selected.filePaths[0]) }
+    catch (error) {
+      logger.error('Library backup failed', serializeError(error))
+      throw toPublicError(error)
+    }
+  })
+  ipcMain.handle(IPC.desktop.openExistingLibrary, async () => {
+    const selected = await dependencies.libraryLocation.chooseExisting()
+    if (!selected) return { switched: false }
+    const validation = validateExistingLibrary(selected)
+    if (!validation.valid) throw new Error(validation.message)
+    if (selected === dependencies.library.root) return { switched: false, path: selected }
+    const confirmation = await dialog.showMessageBox({
+      type: 'question',
+      title: '打开已有 Muse Library',
+      message: '切换到所选 Library 并重新启动 Muse？',
+      detail: '原图、文件夹分组、标签、收藏、智能集合和 AI 数据会从所选 Library 读取。当前 Library 不会被删除。',
+      buttons: ['打开并重启', '取消'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    })
+    if (confirmation.response !== 0) return { switched: false }
+    dependencies.libraryLocation.remember(selected)
+    setTimeout(() => { app.relaunch(); app.exit(0) }, 180)
+    return { switched: true, path: selected }
+  })
 
   handle(IPC.assets.showContextMenu, contextMenuSchema, ({ assetId, selectedAssetIds }) => {
     const window = BrowserWindow.getFocusedWindow()
