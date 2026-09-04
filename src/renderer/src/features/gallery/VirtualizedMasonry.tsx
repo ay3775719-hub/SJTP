@@ -33,7 +33,7 @@ function AssetCard({ asset, position, selected }: { asset: Asset; position: Posi
       draggable onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'copyMove'
         event.dataTransfer.setData('application/x-muse-asset-id', asset.id)
-        // Chromium keeps text/plain more consistently while crossing nested button/image elements.
+        event.dataTransfer.setData('application/x-muse-asset-count', String(selectedIds.has(asset.id) ? selectedIds.size : 1))
         event.dataTransfer.setData('text/plain', asset.id)
       }} aria-label={asset.filename}>
       <img src={asset.thumbnailUrl} alt="" loading="lazy" draggable={false} />
@@ -74,8 +74,17 @@ export function VirtualizedMasonry(): React.JSX.Element {
     const gap = 8, contentWidth = Math.max(1, width - 40), desiredWidth = 155 + zoom * 80
     const columnCount = Math.max(1, Math.floor((contentWidth + gap) / (desiredWidth + gap)))
     const cardWidth = (contentWidth - gap * (columnCount - 1)) / columnCount
+    if (viewMode === 'grid') {
+      const cardHeight = cardWidth * 1.25
+      const positions = assets.map((_, index) => {
+        const column = index % columnCount, row = Math.floor(index / columnCount)
+        return { left: column * (cardWidth + gap), top: row * (cardHeight + gap), width: cardWidth, height: cardHeight }
+      })
+      const rowCount = Math.ceil(assets.length / columnCount)
+      return { positions, totalHeight: rowCount ? rowCount * cardHeight + (rowCount - 1) * gap : 0 }
+    }
     const columns = new Array<number>(columnCount).fill(0)
-    const positions = assets.map((asset) => { const column = columns.indexOf(Math.min(...columns)); const cardHeight = viewMode === 'grid' ? cardWidth * .78 : cardWidth * (asset.height / Math.max(asset.width, 1)); const position = { left: column * (cardWidth + gap), top: columns[column] ?? 0, width: cardWidth, height: cardHeight }; columns[column] = position.top + position.height + gap; return position })
+    const positions = assets.map((asset) => { const column = columns.indexOf(Math.min(...columns)); const cardHeight = cardWidth * (asset.height / Math.max(asset.width, 1)); const position = { left: column * (cardWidth + gap), top: columns[column] ?? 0, width: cardWidth, height: cardHeight }; columns[column] = position.top + position.height + gap; return position })
     return { positions, totalHeight: Math.max(0, ...columns) - gap }
   }, [assets, viewMode, width, zoom])
   const visible = layout.positions.map((position, index) => ({ position, index })).filter(({ position }) => position.top + position.height >= scrollTop - 700 && position.top <= scrollTop + height + 700)

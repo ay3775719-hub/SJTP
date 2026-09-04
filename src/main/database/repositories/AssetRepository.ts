@@ -254,8 +254,8 @@ export class AssetRepository {
     }
 
     const orderBy: Record<NonNullable<AssetQuery['sort']>, string> = {
-      'imported-desc': 'a.imported_at DESC, a.id DESC',
-      'imported-asc': 'a.imported_at ASC, a.id ASC',
+      'imported-desc': 'a.imported_at DESC, a.rowid DESC',
+      'imported-asc': 'a.imported_at ASC, a.rowid ASC',
       'name-asc': 'a.filename COLLATE NOCASE ASC, a.id ASC',
       'name-desc': 'a.filename COLLATE NOCASE DESC, a.id DESC',
       'size-desc': 'a.size DESC, a.id DESC',

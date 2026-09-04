@@ -10,5 +10,6 @@ import { visualSimilarityMigration } from './009_visual_similarity'
 import { duplicateDetectionMigration } from './010_duplicate_detection'
 import { museAgentMigration } from './011_muse_agent'
 import { webCollectorMigration } from './012_web_collector'
+import { galleryOrderingAlignmentMigration } from './013_gallery_ordering_alignment'
 
-export const migrations = [initialMigration, smartCollectionRulesMigration, aiAssetUnderstandingMigration, multiProviderAIMigration, codexBatchRecognitionMigration, minimalAIMetadataMigration, collectionSuggestionsMigration, naturalLanguageSearchMigration, visualSimilarityMigration, duplicateDetectionMigration, museAgentMigration, webCollectorMigration] as const
+export const migrations = [initialMigration, smartCollectionRulesMigration, aiAssetUnderstandingMigration, multiProviderAIMigration, codexBatchRecognitionMigration, minimalAIMetadataMigration, collectionSuggestionsMigration, naturalLanguageSearchMigration, visualSimilarityMigration, duplicateDetectionMigration, museAgentMigration, webCollectorMigration, galleryOrderingAlignmentMigration] as const

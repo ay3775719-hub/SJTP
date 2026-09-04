@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { AIProviderConfig, AIProviderId, AISettings, AppPreferences, VisualIndexPreferences } from '@shared/types/domain'
 
-const DEFAULTS: AppPreferences = { sidebarWidth: 243, inspectorWidth: 402, galleryZoom: 0.48, galleryView: 'masonry' }
+const DEFAULTS: AppPreferences = { sidebarWidth: 243, inspectorWidth: 402, galleryZoom: 0.48, galleryView: 'grid' }
 const DEFAULT_PROVIDER_CONFIGS: Record<AIProviderId, AIProviderConfig> = {
   'codex-chatgpt': { baseUrl: '', modelId: 'auto', displayName: 'Codex / ChatGPT' },
   ollama: { baseUrl: 'http://localhost:11434', modelId: '' },

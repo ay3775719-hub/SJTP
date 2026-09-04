@@ -121,7 +121,7 @@ export function App(): React.JSX.Element {
         if (!store.query.deleted) void store.removeSelected()
       }
       if (event.key === ' ') { event.preventDefault(); store.setPreviewOpen(!store.previewOpen) }
-      if (event.key === 'Escape') store.setPreviewOpen(false)
+      if (event.key === 'Escape') store.clearSelection()
       if (event.key === 'ArrowLeft') store.moveFocus(-1)
       if (event.key === 'ArrowRight') store.moveFocus(1)
       if (event.key === 'ArrowUp') store.moveFocus(-4)

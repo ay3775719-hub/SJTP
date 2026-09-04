@@ -47,6 +47,7 @@ function FolderItem({ folder, onRename, onRemove }: { folder: MuseFolder; onRena
   const setQuery = useAssetStore((state) => state.setQuery)
   const selectedIds = useAssetStore((state) => state.selectedIds)
   const [over, setOver] = useState(false)
+  const [overCount, setOverCount] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const rowRef = useRef<HTMLDivElement>(null)
   const hasAssetDrag = (types: readonly string[]): boolean => types.includes('application/x-muse-asset-id')
@@ -68,10 +69,12 @@ function FolderItem({ folder, onRename, onRemove }: { folder: MuseFolder; onRena
         event.preventDefault()
         event.dataTransfer.dropEffect = query.folderId && query.folderId !== folder.id ? 'move' : 'copy'
         setOver(true)
+        const transferredCount = Number(event.dataTransfer.getData('application/x-muse-asset-count'))
+        setOverCount(Number.isFinite(transferredCount) && transferredCount > 0 ? transferredCount : Math.max(1, selectedIds.size))
       }}
-      onDragLeave={() => setOver(false)}
+      onDragLeave={() => { setOver(false); setOverCount(0) }}
       onDrop={(event) => {
-        event.preventDefault(); setOver(false)
+        event.preventDefault(); setOver(false); setOverCount(0)
         const assetId = event.dataTransfer.getData('application/x-muse-asset-id') || event.dataTransfer.getData('text/plain')
         if (!assetId) return
         const ids = selectedIds.has(assetId) ? [...selectedIds] : [assetId]
@@ -95,6 +98,7 @@ function FolderItem({ folder, onRename, onRemove }: { folder: MuseFolder; onRena
       }}
     >
       <SidebarRow icon={Folder} label={folder.name} count={folder.assetCount} active={query.folderId === folder.id} onClick={() => { useDuplicateStore.getState().closePage(); useNaturalSearchStore.getState().resetPresentation(); void setQuery({ search: undefined, naturalSearch: undefined, folderId: folder.id, tagIds: undefined, favorite: undefined, deleted: false, recent: undefined, smartCollectionId: undefined }) }} />
+      {over && <span className="folder-drop-cue">{query.folderId ? '移动' : '添加'} {overCount} 项</span>}
       <button type="button" className="folder-actions-button" aria-label={`${folder.name}的更多操作`} aria-haspopup="menu" aria-expanded={menuOpen} title="文件夹操作" onClick={() => setMenuOpen((open) => !open)}><DotsThree size={17} weight="bold" /></button>
       {menuOpen && <div className="folder-actions-menu" role="menu">
         <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onRename(folder) }}><PencilSimple size={15} />重命名</button>

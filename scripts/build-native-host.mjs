@@ -11,13 +11,14 @@ const compiler = process.env.WINDIR
 await mkdir(outputDir, { recursive: true })
 await compile('MuseWebCollectorHost.cs', 'MuseWebCollectorHost.exe')
 await compile('MuseClipboardHost.cs', 'MuseClipboardHost.exe', ['/reference:System.Windows.Forms.dll', '/reference:System.Drawing.dll'])
+await compile('MuseFileDragHost.cs', 'MuseFileDragHost.exe', ['/reference:System.Windows.Forms.dll', '/reference:System.Drawing.dll'], 'winexe')
 await compile('MuseLatestLauncher.cs', 'MuseLatestLauncher.exe', ['/reference:System.Windows.Forms.dll'])
 
-async function compile(sourceName, outputName, references = []) {
+async function compile(sourceName, outputName, references = [], target = 'exe') {
   const source = join(root, 'native-host', sourceName)
   const output = join(outputDir, outputName)
   await new Promise((resolve, reject) => {
-    const child = spawn(compiler, ['/nologo', '/target:exe', ...references, `/out:${output}`, source], { stdio: 'inherit', windowsHide: true })
+    const child = spawn(compiler, ['/nologo', `/target:${target}`, ...references, `/out:${output}`, source], { stdio: 'inherit', windowsHide: true })
     child.once('error', reject)
     child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${outputName} compiler exited with ${code}`)))
   })

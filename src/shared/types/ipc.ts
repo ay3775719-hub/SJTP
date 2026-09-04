@@ -43,6 +43,7 @@ export interface MuseAPI {
     pickAndImport(folderId?: string): Promise<ImportResult>
     importPaths(paths: string[], folderId?: string): Promise<ImportResult>
     toggleFavorite(id: string): Promise<Asset>
+    setFavorite(assetIds: string[], favorite: boolean): Promise<number>
     remove(ids: string[]): Promise<void>
     restore(ids: string[]): Promise<void>
     emptyTrash(): Promise<TrashPurgeResult>
@@ -67,6 +68,7 @@ export interface MuseAPI {
     copyFile(assetId: string): Promise<void>
     copyImage(assetId: string): Promise<void>
     copyAssets(assetIds: string[]): Promise<{ count: number; mode: 'image-and-files' | 'files' | 'image' | 'paths' }>
+    startAssetDrag(assetIds: string[]): void
     getLibraryPath(): Promise<string>
     openLibraryFolder(): Promise<void>
     getPlatform(): Promise<'win32' | 'darwin' | 'linux'>

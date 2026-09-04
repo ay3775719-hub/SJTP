@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, nativeImage, shell } from 'electron'
 import { z } from 'zod'
 import { IPC } from '@shared/constants/ipc'
-import { assetQuerySchema, createFolderSchema, createTagSchema, folderAssetSchema, idSchema, importPathsSchema, moveFolderAssetsSchema, renameFolderSchema, tagAssetSchema } from '@shared/schemas/ipc'
+import { assetQuerySchema, createFolderSchema, createTagSchema, folderAssetSchema, idSchema, importPathsSchema, moveFolderAssetsSchema, renameFolderSchema, setFavoriteSchema, tagAssetSchema } from '@shared/schemas/ipc'
 import type { AppPreferences, DesktopAction, LibraryChangeEvent, LibraryChangeKind } from '@shared/types/domain'
 import type { AssetImporter } from '../services/assets/AssetImporter'
 import type { AssetRepository } from '../database/repositories/AssetRepository'
@@ -133,6 +133,11 @@ export function registerIpc(dependencies: IpcDependencies): void {
   handle(IPC.assets.get, idSchema, (id) => dependencies.assets.get(id))
   handle(IPC.assets.sources, idSchema, (id) => dependencies.assetSources.list(id))
   handle(IPC.assets.toggleFavorite, idSchema, (id) => { const asset = dependencies.assets.toggleFavorite(id); emitChange('asset:updated', [id]); return asset })
+  handle(IPC.assets.setFavorite, setFavoriteSchema, ({ assetIds, favorite }) => {
+    const affectedCount = dependencies.assets.setFavorite(assetIds, favorite)
+    emitChange('asset:updated', assetIds)
+    return affectedCount
+  })
   handle(IPC.assets.remove, idListSchema, (ids) => { dependencies.assets.softDelete(ids); emitChange('asset:deleted', ids) })
   handle(IPC.assets.restore, idListSchema, (ids) => { dependencies.assets.restore(ids); emitChange('asset:restored', ids) })
   ipcMain.handle(IPC.assets.emptyTrash, async () => {
@@ -258,6 +263,15 @@ export function registerIpc(dependencies: IpcDependencies): void {
   handle(IPC.desktop.copyFile, idSchema, (id) => clipboard.writeText(requireAssetPath(dependencies.assets, id)))
   handle(IPC.desktop.copyImage, idSchema, (id) => clipboard.writeImage(nativeImage.createFromPath(requireAssetPath(dependencies.assets, id))))
   handle(IPC.desktop.copyAssets, idListSchema, (ids) => clipboardService.copyAssetPaths(ids.map((id) => requireAssetPath(dependencies.assets, id))))
+  ipcMain.on(IPC.desktop.startAssetDrag, (event, payload) => {
+    try {
+      const ids = idListSchema.parse(payload)
+      const files = [...new Set(ids.map((id) => requireAssetPath(dependencies.assets, id)))]
+      clipboardService.startAssetDrag(event.sender, files)
+    } catch (error) {
+      logger.error(`IPC handler failed: ${IPC.desktop.startAssetDrag}`, serializeError(error))
+    }
+  })
   handle(IPC.desktop.openExternal, z.string().url(), async (url) => { if (!/^https?:/i.test(url)) throw new Error('Only http(s) links are allowed'); await shell.openExternal(url) })
   ipcMain.handle(IPC.desktop.openFolderDialog, async () => { const result = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] }); return result.filePaths[0] ?? null })
   ipcMain.handle(IPC.desktop.getLibraryPath, () => dependencies.library.root)

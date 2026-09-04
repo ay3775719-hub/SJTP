@@ -29,6 +29,7 @@ export function GalleryZoomControl({ placement }: { placement: 'toolbar' | 'bott
         style={style}
         onChange={(event) => setZoom(Number(event.currentTarget.value))}
       />
+      {placement === 'toolbar' && <output className="zoom-value" aria-live="polite">{percentage}%</output>}
       <button type="button" className="zoom-step" aria-label="放大图片" title="放大图片" disabled={zoom >= 1} onClick={() => changeBy(ZOOM_STEP)}>
         <Plus size={placement === 'toolbar' ? 14 : 13} />
       </button>

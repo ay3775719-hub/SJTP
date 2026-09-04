@@ -43,6 +43,7 @@ interface AssetState {
   setQuery(patch: Partial<AssetQuery>): Promise<void>
   select(id: string, mode: 'replace' | 'toggle' | 'range'): void
   selectAll(): void
+  clearSelection(): void
   moveFocus(delta: number): void
   setZoom(value: number): void
   setViewMode(value: 'masonry' | 'grid'): void
@@ -50,6 +51,7 @@ interface AssetState {
   openPreviewContext(assets: Asset[], focusedId: string): void
   movePreviewFocus(delta: number): void
   toggleFavorite(id: string): Promise<void>
+  setSelectedFavorite(favorite: boolean): Promise<void>
   importFromDialog(): Promise<void>
   importPaths(paths: string[]): Promise<void>
   removeSelected(): Promise<void>
@@ -158,6 +160,7 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   }),
 
   selectAll: () => set((state) => ({ selectedIds: new Set(state.assets.map((asset) => asset.id)), focusedId: state.focusedId ?? state.assets[0]?.id ?? null })),
+  clearSelection: () => set({ selectedIds: new Set(), focusedId: null, anchorId: null }),
   moveFocus: (delta) => set((state) => {
     if (!state.assets.length) return state
     const current = Math.max(0, state.assets.findIndex((asset) => asset.id === state.focusedId))
@@ -194,6 +197,14 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   toggleFavorite: async (id) => {
     try { await museApi.assets.toggleFavorite(id) }
     catch (error) { set({ error: messageFor(error) }) }
+  },
+  setSelectedFavorite: async (favorite) => {
+    const ids = [...get().selectedIds]
+    if (!ids.length) return
+    try {
+      const affectedCount = await museApi.assets.setFavorite(ids, favorite)
+      showNotice(favorite ? `已收藏 ${affectedCount} 项素材` : `已取消收藏 ${affectedCount} 项素材`, 'success')
+    } catch (error) { showNotice('收藏操作失败', 'error', messageFor(error)) }
   },
   importFromDialog: async () => {
     set({ importing: true, error: null })

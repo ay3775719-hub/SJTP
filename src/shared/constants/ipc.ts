@@ -15,6 +15,7 @@ export const IPC = {
     pickAndImport: 'assets:pick-and-import',
     importPaths: 'assets:import-paths',
     toggleFavorite: 'assets:toggle-favorite',
+    setFavorite: 'assets:set-favorite',
     remove: 'assets:remove',
     restore: 'assets:restore',
     emptyTrash: 'assets:empty-trash',
@@ -30,7 +31,7 @@ export const IPC = {
   desktop: {
     openFileDialog: 'desktop:open-file-dialog', openFolderDialog: 'desktop:open-folder-dialog',
     showItemInFolder: 'desktop:show-item-in-folder', openExternal: 'desktop:open-external',
-    copyFile: 'desktop:copy-file', copyImage: 'desktop:copy-image', copyAssets: 'desktop:copy-assets', getLibraryPath: 'desktop:get-library-path',
+    copyFile: 'desktop:copy-file', copyImage: 'desktop:copy-image', copyAssets: 'desktop:copy-assets', startAssetDrag: 'desktop:start-asset-drag', getLibraryPath: 'desktop:get-library-path',
     openLibraryFolder: 'desktop:open-library-folder', getPlatform: 'desktop:get-platform',
     libraryTransferStatus: 'desktop:library-transfer-status', backupLibrary: 'desktop:backup-library', openExistingLibrary: 'desktop:open-existing-library'
   },

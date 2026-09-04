@@ -21,6 +21,10 @@ export const assetQuerySchema = z.object({
 })
 
 export const idSchema = z.string().min(1).max(128)
+export const setFavoriteSchema = z.object({
+  assetIds: z.array(idSchema).min(1).max(5000),
+  favorite: z.boolean()
+})
 export const importPathsSchema = z.object({
   paths: z.array(z.string().min(1)).min(1).max(5000),
   source: z.enum(['local', 'url', 'browser_extension', 'clipboard', 'screenshot']).default('local'),

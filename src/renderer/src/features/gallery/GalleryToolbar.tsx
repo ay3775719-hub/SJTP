@@ -1,9 +1,10 @@
-import { ArrowCounterClockwise, ArrowLeft, ArrowsOutSimple, Funnel, GridFour, SlidersHorizontal, SquaresFour, Trash, WarningCircle } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowsOutSimple, Check, Funnel, GridFour, SlidersHorizontal, SquaresFour, Trash, WarningCircle } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useAssetStore } from '../../stores/useAssetStore'
 import { museApi } from '../../api/client'
 import { useNaturalSearchStore } from '../../stores/useNaturalSearchStore'
 import { GalleryZoomControl } from './GalleryZoomControl'
+import { GallerySelectionBar } from './GallerySelectionBar'
 
 export function GalleryToolbar(): React.JSX.Element {
   const total = useAssetStore((state) => state.total)
@@ -14,13 +15,13 @@ export function GalleryToolbar(): React.JSX.Element {
   const viewMode = useAssetStore((state) => state.viewMode)
   const setViewMode = useAssetStore((state) => state.setViewMode)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [sortOpen, setSortOpen] = useState(false)
   const naturalQuery = useNaturalSearchStore((state) => state.queryText)
   const similarity = useAssetStore((state) => state.similarity)
   const agentResultTitle = useAssetStore((state) => state.agentResultTitle)
   const exitSimilarity = useAssetStore((state) => state.exitSimilarity)
   const exitAgentResult = useAssetStore((state) => state.exitAgentResult)
   const selectedCount = useAssetStore((state) => state.selectedIds.size)
-  const restoreSelected = useAssetStore((state) => state.restoreSelected)
   const emptyTrash = useAssetStore((state) => state.emptyTrash)
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false)
   const [emptyingTrash, setEmptyingTrash] = useState(false)
@@ -53,21 +54,25 @@ export function GalleryToolbar(): React.JSX.Element {
         <div><strong>{title}</strong><span>{similarity ? `基于 ${similarity.source.filename} · ${total.toLocaleString('zh-CN')} 项` : `${total.toLocaleString('zh-CN')} 项素材`}</span></div>
       </div>
       <div className="toolbar-actions no-drag">
+        {selectedCount > 0 ? <GallerySelectionBar /> : <>
         {query.deleted && <div className="trash-actions">
-          <button disabled={!selectedCount} onClick={() => void restoreSelected()}><ArrowCounterClockwise size={15} />恢复所选{selectedCount ? ` (${selectedCount})` : ''}</button>
           <button className="danger" disabled={!total} onClick={() => setConfirmEmptyTrash(true)}><Trash size={15} />清空回收站</button>
         </div>}
         <GalleryZoomControl placement="toolbar" />
         <div className="segmented-control" aria-label="布局模式">
-          <button className={viewMode === 'masonry' ? 'active' : ''} onClick={() => setViewMode('masonry')} title="瀑布流"><GridFour size={17} /></button>
-          <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')} title="网格"><SquaresFour size={17} /></button>
+          <button className={viewMode === 'masonry' ? 'active' : ''} onClick={() => setViewMode('masonry')} title="瀑布流（保留原始比例）"><GridFour size={17} /></button>
+          <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')} title="整齐网格（按顺序对齐）"><SquaresFour size={17} /></button>
         </div>
         {!similarity && <div className="segmented-control">
           <button title="适合窗口" onClick={() => setZoom(0.48)}><ArrowsOutSimple size={17} /></button>
-          <button className={filterOpen ? 'active' : ''} title="筛选" onClick={() => setFilterOpen((open) => !open)}><Funnel size={17} /></button>
-          <button title="切换排序" onClick={() => void setQuery({ sort: query.sort === 'name-asc' ? 'imported-desc' : 'name-asc' })}><SlidersHorizontal size={17} /></button>
+          <button className={filterOpen ? 'active' : ''} title="筛选" onClick={() => { setSortOpen(false); setFilterOpen((open) => !open) }}><Funnel size={17} /></button>
+          <button className={sortOpen ? 'active' : ''} title="排序方式" onClick={() => { setFilterOpen(false); setSortOpen((open) => !open) }}><SlidersHorizontal size={17} /></button>
         </div>}
         {!similarity && filterOpen && <div className="filter-popover"><div className="filter-title">筛选</div><label><input type="checkbox" checked={query.favorite === true} onChange={(event) => void setQuery({ favorite: event.target.checked || undefined })} /> 仅收藏</label><div className="filter-title">格式</div><div className="filter-chips">{['jpg', 'png', 'webp', 'gif'].map((format) => { const active = query.formats?.includes(format) ?? false; return <button key={format} className={active ? 'active' : ''} onClick={() => void setQuery({ formats: active ? query.formats?.filter((item) => item !== format) : [...(query.formats ?? []), format] })}>{format.toUpperCase()}</button> })}</div></div>}
+        {!similarity && sortOpen && <div className="sort-popover"><div className="filter-title">排列方式</div>{[
+          ['imported-desc', '最新采集在前'], ['imported-asc', '最早采集在前'], ['name-asc', '文件名 A–Z'], ['name-desc', '文件名 Z–A']
+        ].map(([value, label]) => <button key={value} className={(query.sort ?? 'imported-desc') === value ? 'active' : ''} onClick={() => { setSortOpen(false); void setQuery({ sort: value as NonNullable<typeof query.sort> }) }}><span>{label}</span>{(query.sort ?? 'imported-desc') === value && <Check size={14} />}</button>)}</div>}
+        </>}
       </div>
     </header>
     {confirmEmptyTrash && <div className="input-dialog-backdrop"><div className="input-dialog delete-confirm trash-empty-confirm">
