@@ -10,12 +10,29 @@ import { FolderRepository } from './repositories/FolderRepository'
 import { TagRepository } from './repositories/TagRepository'
 import { AssetImporter } from '../services/assets/AssetImporter'
 import { ensureLibrary } from '../services/filesystem/LibraryPaths'
-import { LibraryTransferService, relocateManagedPaths, validateExistingLibrary } from '../services/filesystem/LibraryTransferService'
+import { findExistingLibraries, LibraryTransferService, relocateManagedPaths, validateExistingLibrary } from '../services/filesystem/LibraryTransferService'
 
 const cleanup: string[] = []
 afterEach(async () => { await Promise.all(cleanup.splice(0).map((path) => rm(path, { recursive: true, force: true }))) })
 
 describe('Library backup and computer migration', () => {
+  it('finds a complete Library inside a selected outer folder and distinguishes multiple Libraries', async () => {
+    const workspace = await mkdtemp(join(tmpdir(), 'muse-discovery-'))
+    cleanup.push(workspace)
+    const nested = ensureLibrary(join(workspace, 'whole-backup', 'older-backup', 'Muse Library'))
+    new DatabaseService(nested.database).close()
+
+    expect(await findExistingLibraries(workspace)).toEqual({ paths: [nested.root], truncated: false })
+    expect(await findExistingLibraries(nested.root)).toEqual({ paths: [nested.root], truncated: false })
+
+    const second = ensureLibrary(join(workspace, 'another-library'))
+    new DatabaseService(second.database).close()
+    const found = await findExistingLibraries(workspace)
+    expect(found.truncated).toBe(false)
+    expect(found.paths).toHaveLength(2)
+    expect(found.paths).toEqual(expect.arrayContaining([nested.root, second.root]))
+  })
+
   it('preserves originals, folders, tags and favorites after the root path changes', async () => {
     const workspace = await mkdtemp(join(tmpdir(), 'muse-transfer-'))
     cleanup.push(workspace)

@@ -93,6 +93,7 @@ function LibraryTransferSettings(): React.JSX.Element {
   const [busy, setBusy] = useState<'backup' | 'switch' | null>(null)
   const [result, setResult] = useState<LibraryBackupResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   useEffect(() => { void museApi.desktop.getLibraryPath().then(setLibraryPath) }, [])
   const backup = async (): Promise<void> => {
     setBusy('backup'); setError(null)
@@ -101,9 +102,15 @@ function LibraryTransferSettings(): React.JSX.Element {
     finally { setBusy(null) }
   }
   const openExisting = async (): Promise<void> => {
-    setBusy('switch'); setError(null)
-    try { await museApi.desktop.openExistingLibrary() }
-    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+    setBusy('switch'); setError(null); setNotice(null)
+    try {
+      const response = await museApi.desktop.openExistingLibrary()
+      if (!response.switched && response.path) setNotice('当前已经在使用这个 Library。')
+    }
+    catch (reason) {
+      const message = reason instanceof Error ? reason.message : String(reason)
+      setError(message.replace(/^Error invoking remote method '[^']+': Error: /, ''))
+    }
     finally { setBusy(null) }
   }
   return <section className="library-transfer-settings">
@@ -111,11 +118,13 @@ function LibraryTransferSettings(): React.JSX.Element {
     <div className="library-current-path" title={libraryPath}><span>当前 Library</span><strong>{libraryPath || '正在读取…'}</strong></div>
     <div className="library-transfer-actions">
       <button className="visual-index-primary" disabled={busy !== null} onClick={() => void backup()}><Archive size={15} />{busy === 'backup' ? '正在备份…' : '备份整个 Library'}</button>
-      <button disabled={busy !== null} onClick={() => void openExisting()}><FolderOpen size={15} />{busy === 'switch' ? '正在切换…' : '打开已有 Library'}</button>
+      <button disabled={busy !== null} onClick={() => void openExisting()}><FolderOpen size={15} />{busy === 'switch' ? '正在选择…' : '打开已有 Library'}</button>
       <button onClick={() => void museApi.desktop.openLibraryFolder()}><FolderOpen size={15} />打开当前文件夹</button>
     </div>
     {result && <div className="library-backup-result"><CheckCircle size={16} weight="fill" /><span><strong>备份完成 · {result.assetCount.toLocaleString('zh-CN')} 项素材 · {result.folderCount.toLocaleString('zh-CN')} 个分组</strong><small>{formatBytes(result.bytes)} · {result.path}</small></span></div>}
+    {notice && <p className="library-transfer-notice">{notice}</p>}
     {error && <p className="settings-error">{error}</p>}
+    <p className="library-transfer-hint">打开已有 Library 时，可直接选整份备份或其上层文件夹；Muse 会自动查找。</p>
     <div className="local-privacy"><LockKey size={16} /><span>备份包含原图和 muse.db。新电脑选择该 Library 后，Muse 会自动修正盘符和路径；不会上传到云端。</span></div>
   </section>
 }

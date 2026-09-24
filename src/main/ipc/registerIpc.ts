@@ -300,8 +300,8 @@ export function registerIpc(dependencies: IpcDependencies): void {
     const confirmation = await dialog.showMessageBox({
       type: 'question',
       title: '打开已有 Muse Library',
-      message: '切换到所选 Library 并重新启动 Muse？',
-      detail: '原图、文件夹分组、标签、收藏、智能集合和 AI 数据会从所选 Library 读取。当前 Library 不会被删除。',
+      message: '已找到 Muse Library，切换并重新启动 Muse？',
+      detail: `找到的 Library：\n${selected}\n\n原图、分组、标签、收藏和 AI 数据会从这里读取。当前 Library 不会被删除。`,
       buttons: ['打开并重启', '取消'],
       defaultId: 0,
       cancelId: 1,

@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { backup, DatabaseSync } from 'node:sqlite'
 import type { LibraryBackupResult, LibraryTransferStatus } from '@shared/types/domain'
@@ -7,6 +7,8 @@ import type { LibraryDirectories } from './LibraryPaths'
 
 const MANIFEST_NAME = 'muse-library.json'
 const BACKUP_FORMAT_VERSION = 1
+const MAX_LIBRARY_SEARCH_DEPTH = 6
+const MAX_LIBRARY_SEARCH_DIRECTORIES = 2000
 
 interface LibraryManifest {
   formatVersion: number
@@ -108,6 +110,32 @@ export function validateExistingLibrary(root: string): { valid: true; databasePa
   } catch {
     return { valid: false, message: 'Muse Library 数据库无法读取或已经损坏' }
   } finally { db?.close() }
+}
+
+/** Accept a Library itself or a folder containing one, including nested backup folders. */
+export async function findExistingLibraries(selectedFolder: string): Promise<{ paths: string[]; truncated: boolean }> {
+  const queue = [{ path: resolve(selectedFolder), depth: 0 }]
+  const paths: string[] = []
+  let truncated = false
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const { path, depth } = queue[index]!
+    if (validateExistingLibrary(path).valid) {
+      paths.push(path)
+      continue // Do not treat backups inside a complete Library as separate choices.
+    }
+    if (depth >= MAX_LIBRARY_SEARCH_DEPTH) continue
+
+    let entries
+    try { entries = await readdir(path, { withFileTypes: true }) }
+    catch { continue }
+    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+      if (!entry.isDirectory()) continue // Also avoids following directory symlinks and junctions.
+      if (queue.length >= MAX_LIBRARY_SEARCH_DIRECTORIES) { truncated = true; break }
+      queue.push({ path: join(path, entry.name), depth: depth + 1 })
+    }
+  }
+  return { paths, truncated }
 }
 
 /** Rewrites managed absolute paths after a Library folder is moved to another drive/computer. */
