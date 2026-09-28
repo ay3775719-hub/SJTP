@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -9,10 +10,13 @@ const HOST_NAME = 'com.muse.web_collector'
 const EXTENSION_ORIGIN = 'chrome-extension://pammmlffogkfhnapajdjgelkkcpiijll/'
 
 export async function registerNativeMessagingHost(): Promise<void> {
-  if (process.platform !== 'win32' || !app.isPackaged) return
+  if (process.platform !== 'win32') return
   const directory = join(app.getPath('userData'), 'NativeMessaging')
   const manifestPath = join(directory, `${HOST_NAME}.json`)
-  const hostPath = join(process.resourcesPath, 'native-host', 'MuseWebCollectorHost.exe')
+  const hostPath = app.isPackaged
+    ? join(process.resourcesPath, 'native-host', 'MuseWebCollectorHost.exe')
+    : join(process.cwd(), 'release', 'native-host', 'MuseWebCollectorHost.exe')
+  if (!existsSync(hostPath)) return
   await mkdir(directory, { recursive: true })
   await writeFile(manifestPath, JSON.stringify({ name: HOST_NAME, description: 'Muse Web Collector Native Host', path: hostPath, type: 'stdio', allowed_origins: [EXTENSION_ORIGIN] }, null, 2), 'utf8')
   const keys = [

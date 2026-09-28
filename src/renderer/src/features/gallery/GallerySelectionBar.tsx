@@ -103,7 +103,7 @@ export function GallerySelectionBar(): React.JSX.Element {
       <strong>已选择 {ids.length} 项</strong>
       <span className="selection-action-divider" />
       <button type="button" onClick={() => void copy()} title="复制所选 (Ctrl+C)"><Copy size={16} />复制</button>
-      {ids.length > 1 && <button
+      {ids.length > 0 && <button
         type="button"
         className="selection-chat-drag"
         onClick={() => {

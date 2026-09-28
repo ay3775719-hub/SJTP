@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Drawing;
 using System.IO;
 using System.Text;
@@ -9,6 +10,7 @@ internal sealed class MuseFileDragTray : Form
 {
     private readonly string[] files;
     private readonly Label statusLabel;
+    private readonly Label hintLabel;
     private bool dragging;
 
     public MuseFileDragTray(string[] files)
@@ -54,7 +56,7 @@ internal sealed class MuseFileDragTray : Form
             Size = new Size(214, 30),
             Cursor = Cursors.Hand
         };
-        var hint = new Label
+        hintLabel = new Label
         {
             Text = "拖进聊天框后松开鼠标",
             Font = new Font("Microsoft YaHei UI", 8.5F),
@@ -68,11 +70,11 @@ internal sealed class MuseFileDragTray : Form
 
         Controls.Add(icon);
         Controls.Add(statusLabel);
-        Controls.Add(hint);
+        Controls.Add(hintLabel);
         MouseDown += StartDrag;
         icon.MouseDown += StartDrag;
         statusLabel.MouseDown += StartDrag;
-        hint.MouseDown += StartDrag;
+        hintLabel.MouseDown += StartDrag;
     }
 
     private void StartDrag(object sender, MouseEventArgs eventArgs)
@@ -83,20 +85,38 @@ internal sealed class MuseFileDragTray : Form
         try
         {
             var dragData = new DataObject();
-            dragData.SetData(DataFormats.FileDrop, files);
+            var fileDropList = new StringCollection();
+            fileDropList.AddRange(files);
+            dragData.SetFileDropList(fileDropList);
             dragData.SetData("Preferred DropEffect", new MemoryStream(new byte[] { 1, 0, 0, 0 }));
             var result = DoDragDrop(dragData, DragDropEffects.Copy);
             if (result == DragDropEffects.Copy)
             {
-                Close();
+                FinishAndClose("已放入聊天", "图片已交给目标窗口");
                 return;
             }
-            statusLabel.Text = "没有放入，可再次拖动";
+            // Chromium/Electron drop targets can consume CF_HDROP while still
+            // returning None to the OLE source. Do not report a false failure.
+            FinishAndClose("拖放已完成", "请在聊天框中确认图片");
         }
         finally
         {
             dragging = false;
         }
+    }
+
+    private void FinishAndClose(string status, string hint)
+    {
+        statusLabel.Text = status;
+        hintLabel.Text = hint;
+        var timer = new Timer { Interval = 900 };
+        timer.Tick += (_, __) =>
+        {
+            timer.Stop();
+            timer.Dispose();
+            Close();
+        };
+        timer.Start();
     }
 }
 

@@ -51,10 +51,12 @@ internal static class MuseWebCollectorHost
         try { return Forward(request, 1000); }
         catch
         {
+            string launcher = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MuseLatestLauncher.exe");
             string museExe = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Muse.exe"));
-            if (File.Exists(museExe))
+            string executable = File.Exists(launcher) ? launcher : museExe;
+            if (File.Exists(executable))
             {
-                Process.Start(new ProcessStartInfo { FileName = museExe, UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(museExe) });
+                Process.Start(new ProcessStartInfo { FileName = executable, UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(executable) });
             }
         }
 

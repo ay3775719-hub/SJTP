@@ -20,12 +20,14 @@ internal static class MuseLatestLauncher
         try
         {
             var launcherDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            var workspace = Directory.GetParent(Directory.GetParent(launcherDirectory.TrimEnd(Path.DirectorySeparatorChar)).FullName).FullName;
-            var packagedMuse = Path.Combine(workspace, "release", "win-unpacked", "Muse.exe");
-            var packagedAsar = Path.Combine(workspace, "release", "win-unpacked", "resources", "app.asar");
-            var localElectron = Path.Combine(workspace, "node_modules", "electron", "dist", "electron.exe");
-            var localBuild = Path.Combine(workspace, "out", "main", "index.js");
-            var legacyMuse = Path.Combine(workspace, "release", "installed-web-collector-v1", "Muse.exe");
+            var packagedRoot = Directory.GetParent(Directory.GetParent(launcherDirectory.TrimEnd(Path.DirectorySeparatorChar)).FullName).FullName;
+            var workspace = FindWorkspace(launcherDirectory);
+            var packagedMuse = workspace == null ? Path.Combine(packagedRoot, "Muse.exe") : Path.Combine(workspace, "release", "win-unpacked", "Muse.exe");
+            var packagedAsar = workspace == null ? Path.Combine(packagedRoot, "resources", "app.asar") : Path.Combine(workspace, "release", "win-unpacked", "resources", "app.asar");
+            var launchRoot = workspace ?? packagedRoot;
+            var localElectron = Path.Combine(launchRoot, "node_modules", "electron", "dist", "electron.exe");
+            var localBuild = Path.Combine(launchRoot, "out", "main", "index.js");
+            var legacyMuse = Path.Combine(launchRoot, "release", "installed-web-collector-v1", "Muse.exe");
             var useLocalBuild = File.Exists(localElectron) && File.Exists(localBuild)
                 && (!File.Exists(packagedAsar) || File.GetLastWriteTimeUtc(localBuild) > File.GetLastWriteTimeUtc(packagedAsar));
             var executable = useLocalBuild ? localElectron : packagedMuse;
@@ -45,8 +47,8 @@ internal static class MuseLatestLauncher
             Process.Start(new ProcessStartInfo
             {
                 FileName = executable,
-                Arguments = useLocalBuild ? Quote(workspace) : "",
-                WorkingDirectory = useLocalBuild ? workspace : Path.GetDirectoryName(packagedMuse),
+                Arguments = useLocalBuild ? Quote(launchRoot) : "",
+                WorkingDirectory = useLocalBuild ? launchRoot : Path.GetDirectoryName(packagedMuse),
                 UseShellExecute = true
             });
             return 0;
@@ -56,6 +58,18 @@ internal static class MuseLatestLauncher
             MessageBox.Show(error.Message, "Muse could not start", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
+    }
+
+    private static string FindWorkspace(string startDirectory)
+    {
+        var current = new DirectoryInfo(startDirectory);
+        for (var depth = 0; current != null && depth < 8; depth++, current = current.Parent)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "package.json")) &&
+                File.Exists(Path.Combine(current.FullName, "out", "main", "index.js")))
+                return current.FullName;
+        }
+        return null;
     }
 
     private static bool ActivateRunningMuse(string executable)
