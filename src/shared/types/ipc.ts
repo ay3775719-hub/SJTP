@@ -42,6 +42,7 @@ export interface MuseAPI {
     get(id: string): Promise<Asset | null>
     pickAndImport(folderId?: string): Promise<ImportResult>
     importPaths(paths: string[], folderId?: string): Promise<ImportResult>
+    importClipboard(folderId?: string): Promise<ImportResult>
     toggleFavorite(id: string): Promise<Asset>
     setFavorite(assetIds: string[], favorite: boolean): Promise<number>
     remove(ids: string[]): Promise<void>

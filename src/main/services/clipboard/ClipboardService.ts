@@ -1,7 +1,7 @@
 import { app, clipboard, nativeImage, type WebContents } from 'electron'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
 
 export interface ClipboardCopyResult {
   count: number
@@ -10,6 +10,21 @@ export interface ClipboardCopyResult {
 
 export class ClipboardService {
   private activeFileDrag: ChildProcess | null = null
+
+  readImagePng(): Buffer | null {
+    const image = clipboard.readImage()
+    return image.isEmpty() ? null : image.toPNG()
+  }
+
+  async readImageFiles(): Promise<string[]> {
+    if (process.platform !== 'win32') return []
+    const helper = this.helperPath('MuseClipboardHost.exe')
+    if (!existsSync(helper)) return []
+    const output = await runWindowsClipboardHelper(helper, [], true)
+    const paths = output.trim().split(/\r?\n/).filter(Boolean)
+      .map((encoded) => Buffer.from(encoded, 'base64').toString('utf8'))
+    return [...new Set(paths)].filter((path) => /\.(jpe?g|png|webp|gif)$/i.test(extname(path)))
+  }
 
   async copyAssetPaths(paths: string[]): Promise<ClipboardCopyResult> {
     const unique = [...new Set(paths.filter((path) => existsSync(path)))]
@@ -62,17 +77,20 @@ export class ClipboardService {
   }
 }
 
-function runWindowsClipboardHelper(executable: string, paths: string[]): Promise<void> {
+function runWindowsClipboardHelper(executable: string, paths: string[], readFiles = false): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(executable, [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
+    const child = spawn(executable, readFiles ? ['--read-files'] : [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
     let stderr = ''
+    let stdout = ''
     const timer = setTimeout(() => { child.kill(); reject(new Error('Clipboard helper timed out')) }, 10_000)
     child.stderr.setEncoding('utf8')
     child.stderr.on('data', (chunk) => { stderr += chunk })
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk) => { stdout += chunk })
     child.once('error', (error) => { clearTimeout(timer); reject(error) })
     child.once('exit', (code) => {
       clearTimeout(timer)
-      if (code === 0) resolve()
+      if (code === 0) resolve(stdout)
       else reject(new Error(stderr.trim() || `Clipboard helper exited with ${code ?? 'unknown'}`))
     })
     child.stdin.end(paths.map((path) => Buffer.from(path, 'utf8').toString('base64')).join('\n'))

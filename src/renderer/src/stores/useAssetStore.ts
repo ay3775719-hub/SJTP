@@ -54,6 +54,7 @@ interface AssetState {
   setSelectedFavorite(favorite: boolean): Promise<void>
   importFromDialog(): Promise<void>
   importPaths(paths: string[]): Promise<void>
+  importFromClipboard(): Promise<void>
   removeSelected(): Promise<void>
   restoreSelected(): Promise<void>
   emptyTrash(): Promise<TrashPurgeResult | null>
@@ -223,6 +224,15 @@ export const useAssetStore = create<AssetState>((set, get) => ({
       showImportResult(result)
     }
     catch (error) { showNotice('导入失败', 'error', messageFor(error)) }
+    finally { set({ importing: false }) }
+  },
+  importFromClipboard: async () => {
+    if (get().importing) return
+    set({ importing: true, error: null })
+    try {
+      const result = await museApi.assets.importClipboard(get().query.folderId)
+      showImportResult(result)
+    } catch (error) { showNotice('粘贴导入失败', 'error', messageFor(error)) }
     finally { set({ importing: false }) }
   },
   removeSelected: async () => {

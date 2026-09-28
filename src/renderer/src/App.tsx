@@ -20,6 +20,7 @@ import { MuseAssistantPanel } from './features/agent/MuseAssistantPanel'
 import type { WebCollectorPairingRequest } from '@shared/types/domain'
 import { NoticeToast } from './components/NoticeToast'
 import { showNotice } from './stores/useNoticeStore'
+import { registerClipboardPaste } from './features/gallery/registerClipboardPaste'
 
 type Pane = 'sidebar' | 'inspector'
 
@@ -96,6 +97,7 @@ export function App(): React.JSX.Element {
     const unsubscribeDuplicates = useDuplicateStore.subscribe(update)
     return () => { unsubscribeAssets(); unsubscribeDuplicates() }
   }, [])
+  useEffect(() => registerClipboardPaste(() => useAssetStore.getState().importFromClipboard()), [])
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       const target = event.target

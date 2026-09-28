@@ -8,10 +8,18 @@ using System.Windows.Forms;
 internal static class MuseClipboardHost
 {
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
         try
         {
+            if (args.Length == 1 && args[0] == "--read-files")
+            {
+                var copiedFiles = Clipboard.GetFileDropList();
+                if (copiedFiles.Count > 5000) return 2;
+                foreach (string path in copiedFiles)
+                    Console.Out.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(path)));
+                return 0;
+            }
             var encodedLines = Console.In.ReadToEnd().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             var files = new StringCollection();
             foreach (var encoded in encodedLines)

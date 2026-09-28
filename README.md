@@ -13,6 +13,15 @@ npm run dev
 
 `npm run dev` opens Muse in an Electron desktop window. The renderer is not supported as a standalone website.
 
+## Paste images
+
+Copy an image or screenshot in another application, switch to the Muse Gallery,
+and press **Ctrl+V** (macOS: **Cmd+V**) or choose **Edit → Paste**. Muse saves the
+image to the Library, generates thumbnails, and places it in the currently open
+folder. On Windows, copied image files (including multiple files) keep their
+original filenames and formats. Paste inside search fields and chat inputs
+continues to edit text. The shortcut applies while Muse is focused.
+
 ## Verification and packaging
 
 ```bash

@@ -14,6 +14,7 @@ export const IPC = {
     get: 'assets:get',
     pickAndImport: 'assets:pick-and-import',
     importPaths: 'assets:import-paths',
+    importClipboard: 'assets:import-clipboard',
     toggleFavorite: 'assets:toggle-favorite',
     setFavorite: 'assets:set-favorite',
     remove: 'assets:remove',

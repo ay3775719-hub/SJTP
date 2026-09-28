@@ -30,6 +30,7 @@ import type { WebCollectorBridge } from '../services/webCollector/WebCollectorBr
 import type { WebCollectorPairingService } from '../services/webCollector/WebCollectorPairingService'
 import { museAgentApprovalResolutionSchema, museAgentContextSchema, museAgentConversationListSchema, museAgentMessageListSchema, museAgentSendSchema } from '@shared/schemas/museAgent'
 import { ClipboardService } from '../services/clipboard/ClipboardService'
+import { ClipboardImportService } from '../services/clipboard/ClipboardImportService'
 import type { LibraryTransferService } from '../services/filesystem/LibraryTransferService'
 import { validateExistingLibrary } from '../services/filesystem/LibraryTransferService'
 import type { LibraryLocationService } from '../services/desktop/LibraryLocationService'
@@ -68,6 +69,7 @@ const preferenceSchema = z.object({
 
 export function registerIpc(dependencies: IpcDependencies): void {
   const clipboardService = new ClipboardService()
+  const clipboardImporter = new ClipboardImportService(clipboardService, dependencies.importer, dependencies.library)
   const emitChange = (kind: LibraryChangeKind, assetIds?: string[]): void => {
     dependencies.collectionSuggestions.invalidate()
     dependencies.duplicates.invalidate()
@@ -157,6 +159,11 @@ export function registerIpc(dependencies: IpcDependencies): void {
     return result
   })
   ipcMain.handle(IPC.assets.pickAndImport, async (_event, folderId?: string) => importWithDialog(folderId))
+  handle(IPC.assets.importClipboard, idSchema.optional(), async (folderId) => {
+    const result = await clipboardImporter.import(folderId)
+    if (result.imported.length) emitChange('asset:created', result.imported.map((asset) => asset.id))
+    return result
+  })
   ipcMain.handle(IPC.desktop.openFileDialog, async (_event, folderId?: string) => importWithDialog(folderId))
 
   ipcMain.handle(IPC.folders.list, () => dependencies.folders.list())

@@ -52,6 +52,7 @@ const api: MuseAPI = {
     get: (id) => ipcRenderer.invoke(IPC.assets.get, id),
     pickAndImport: (folderId) => ipcRenderer.invoke(IPC.assets.pickAndImport, folderId),
     importPaths: (paths, folderId) => ipcRenderer.invoke(IPC.assets.importPaths, { paths, source: 'local', folderId }),
+    importClipboard: (folderId) => ipcRenderer.invoke(IPC.assets.importClipboard, folderId),
     toggleFavorite: (id) => ipcRenderer.invoke(IPC.assets.toggleFavorite, id),
     setFavorite: (assetIds, favorite) => ipcRenderer.invoke(IPC.assets.setFavorite, { assetIds, favorite }),
     remove: (ids) => ipcRenderer.invoke(IPC.assets.remove, ids),
