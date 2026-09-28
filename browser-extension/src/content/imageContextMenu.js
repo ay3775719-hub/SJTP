@@ -12,11 +12,22 @@ let lastPointerY = -1
 let hideActionTimer = null
 let hoverIntentTimer = null
 let hoverIntent = null
+let actionAnchor = null
 
 document.addEventListener('pointermove', (event) => {
   lastPointerX = event.clientX
   lastPointerY = event.clientY
   if (event.target instanceof Element && event.target.closest(`#${ACTION_ID}`)) {
+    cancelHoverIntent()
+    cancelHideAction()
+    return
+  }
+  // Keep the revealed action attached to its image, including when a site's
+  // overlay receives pointer events. Do this before throttling so a quick
+  // return to the image always cancels the pending hide.
+  if (document.getElementById(ACTION_ID) && actionAnchor?.isConnected &&
+      (!(actionAnchor instanceof HTMLImageElement) || isUsableImage(actionAnchor)) &&
+      rectContainsPoint(actionAnchor.getBoundingClientRect(), event.clientX, event.clientY)) {
     cancelHoverIntent()
     cancelHideAction()
     return
@@ -40,7 +51,14 @@ document.addEventListener('pointermove', (event) => {
   scheduleHoverIntent(event.clientX, event.clientY, resolved)
 }, { capture: true, passive: true })
 
-document.addEventListener('pointerleave', () => { cancelHoverIntent(); scheduleHideAction() }, { capture: true, passive: true })
+document.addEventListener('pointerleave', (event) => {
+  // Capture also sees pointerleave from every descendant, including the image
+  // when entering our button. Only leaving the document should dismiss it.
+  if (event.target !== document && event.target !== document.documentElement) return
+  if (event.relatedTarget) return
+  cancelHoverIntent()
+  scheduleHideAction()
+}, { capture: true, passive: true })
 document.addEventListener('mouseout', (event) => {
   if (!event.relatedTarget) { cancelHoverIntent(); scheduleHideAction() }
 }, { capture: true, passive: true })
@@ -57,7 +75,7 @@ document.addEventListener('contextmenu', (event) => {
   // Many image sites replace Chrome's context menu with their own DOM menu.
   // Keep that menu intact and place Muse in the image corner, away from the
   // pointer where browser/site menus normally open.
-  setTimeout(() => showAction(event.clientX, event.clientY, resolved.payload, resolved.anchorRect), 0)
+  setTimeout(() => showAction(event.clientX, event.clientY, resolved.payload, resolved.anchorRect, resolved.anchorElement), 0)
 }, { capture: true })
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -87,7 +105,7 @@ function scheduleHoverIntent(x, y, resolved) {
     const target = document.elementFromPoint(lastPointerX, lastPointerY)
     const confirmed = resolveImageAt(target, lastPointerX, lastPointerY, false)
     if (!confirmed || confirmed.payload.imageUrl !== pending.imageUrl || !isHoverableRect(confirmed.anchorRect)) return
-    showAction(lastPointerX, lastPointerY, confirmed.payload, confirmed.anchorRect)
+    showAction(lastPointerX, lastPointerY, confirmed.payload, confirmed.anchorRect, confirmed.anchorElement)
   }, HOVER_INTENT_DELAY_MS)
 }
 
@@ -134,7 +152,8 @@ function resolveImageAt(node, clientX, clientY, allowBackground = true) {
     if (imageUrl) {
       return {
         payload: buildPayload(imageUrl, image.alt, image.naturalWidth, image.naturalHeight),
-        anchorRect: snapshotRect(image.getBoundingClientRect())
+        anchorRect: snapshotRect(image.getBoundingClientRect()),
+        anchorElement: image
       }
     }
   }
@@ -146,7 +165,8 @@ function resolveImageAt(node, clientX, clientY, allowBackground = true) {
         if (imageUrl) {
           return {
             payload: buildPayload(imageUrl, current.getAttribute('aria-label') || '', current.clientWidth, current.clientHeight),
-            anchorRect: snapshotRect(current.getBoundingClientRect())
+            anchorRect: snapshotRect(current.getBoundingClientRect()),
+            anchorElement: current
           }
         }
       }
@@ -212,8 +232,9 @@ function buildPayload(imageUrl, altText, imageWidth, imageHeight) {
   }
 }
 
-function showAction(x, y, payload, anchorRect) {
+function showAction(x, y, payload, anchorRect, anchorElement) {
   removeAction()
+  actionAnchor = anchorElement || null
   const position = actionPosition(x, y, anchorRect)
   const button = document.createElement('button')
   const mark = document.createElement('span')
@@ -272,6 +293,8 @@ function showAction(x, y, payload, anchorRect) {
   })
   button.append(mark, label)
   button.addEventListener('mouseenter', () => {
+    cancelHoverIntent()
+    cancelHideAction()
     button.style.transform = 'translateY(-2px) scale(1.015)'
     button.style.borderColor = 'rgba(190,200,255,.62)'
     button.style.boxShadow = '0 15px 38px rgba(0,0,0,.44), 0 0 22px rgba(89,111,224,.22), inset 0 1px 0 rgba(255,255,255,.16)'
@@ -297,7 +320,9 @@ function showAction(x, y, payload, anchorRect) {
       mark.textContent = '!'
       label.textContent = '保存失败，请重试'
     }
-    setTimeout(removeAction, 2400)
+    setTimeout(() => {
+      if (document.getElementById(ACTION_ID) === button) removeAction()
+    }, 2400)
   }, { capture: true })
   document.documentElement.appendChild(button)
 }
@@ -330,6 +355,8 @@ function clamp(value, minimum, maximum) {
 }
 
 function removeAction() {
+  cancelHideAction()
+  actionAnchor = null
   document.getElementById(ACTION_ID)?.remove()
 }
 
