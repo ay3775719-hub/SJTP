@@ -35,6 +35,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void collectPageImage(message.payload, sender.tab).then(sendResponse)
     return true
   }
+  if (message?.type === 'collect_group_image') {
+    void collectPageImage(message.payload, sender.tab, true).then(sendResponse)
+    return true
+  }
+  if (message?.type === 'collect_group_complete') {
+    void feedback(message.failed ? '!' : '✓', message.summary, sender.tab?.id).then(() => sendResponse({ ok: true }))
+    return true
+  }
 })
 
 async function collectImage(info, tab) {
@@ -82,8 +90,8 @@ async function collectLastContextImage(info, tab) {
   }
 }
 
-async function collectPageImage(payload, tab) {
-  await feedback('…', '正在保存到 Muse...', tab?.id)
+async function collectPageImage(payload, tab, quiet = false) {
+  if (!quiet) await feedback('…', '正在保存到 Muse...', tab?.id)
   try {
     const pageUrl = tab?.url && /^https?:\/\//i.test(tab.url) ? tab.url : payload?.pageUrl
     const imageUrl = payload?.imageUrl
@@ -105,14 +113,14 @@ async function collectPageImage(payload, tab) {
           ? '图片已经收藏过'
           : readableError(response.message || response.status)
     const ok = ['saved', 'existing_asset_source_added', 'already_collected'].includes(response.status)
-    await feedback(ok ? '✓' : '!', message, tab?.id)
+    if (!quiet) await feedback(ok ? '✓' : '!', message, tab?.id)
     return { ok, status: response.status, message }
   } catch (error) {
     const code = String(error?.message || error)
     const message = code.includes('native host') || code.includes('not found') || code.includes('muse_unavailable')
       ? '请先启动最新版 Muse'
       : readableError(code)
-    await feedback('!', message, tab?.id)
+    if (!quiet) await feedback('!', message, tab?.id)
     return { ok: false, status: 'failed', message }
   }
 }

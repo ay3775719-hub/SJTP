@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run --config vitest.config.ts && npm run test:services",
     "test:services": "node scripts/smoke-main.mjs",
-    "test:extension": "node --test scripts/web-collector-hover.test.mjs",
+    "test:extension": "node --test scripts/web-collector-hover.test.mjs scripts/web-collector-group.test.mjs scripts/web-collector-background.test.mjs",
     "test:visual-quality": "node scripts/visual-quality-report.mjs",
     "benchmark:visual-search": "node scripts/benchmark-visual-search.mjs",
     "test:watch": "vitest"

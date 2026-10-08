@@ -26,6 +26,17 @@ Huaban, Behance, Dribbble, or other site-specific allow-list. Browser-internal
 pages, local/private URLs, canvas-only rendering, and images that require
 browser cookies remain outside v1's safe collection boundary.
 
+On posts with a visible image carousel (including Instagram and Xiaohongshu),
+the hover action also offers **采集整组**. It walks the carousel to load each
+slide, restores the initially displayed image, and saves every distinct image
+through the existing Muse import path with the post URL as its source. Progress
+and saved/already-present/failed counts appear on completion. One action reads
+up to 30 slides; if a site does not expose an accessible carousel or refuses to
+load a slide, the summary reports that the group may be incomplete. A video
+slide can also stop the scan before later photos. No account or cookie access
+is requested.
+
 After updating an unpacked build, reload the extension once in
 `chrome://extensions` or `edge://extensions` so the browser adopts the new
-manifest and service worker. The popup should then report “已连接”.
+manifest and service worker. Then refresh existing website tabs to replace
+their previously injected content script. The popup should then report “已连接”.
