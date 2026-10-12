@@ -544,10 +544,23 @@ export interface LibraryBackupResult {
   bytes: number
 }
 
+export interface LibraryMergeResult {
+  sourcePath: string
+  safetyBackupPath: string
+  addedAssetCount: number
+  duplicateAssetCount: number
+  updatedAssetCount: number
+  addedFolderCount: number
+  addedTagCount: number
+  failureCount: number
+}
+
 export type LibraryTransferStatus =
   | { state: 'idle' }
   | { state: 'backing_up'; destinationPath: string }
+  | { state: 'merging'; sourcePath: string }
   | { state: 'completed'; destinationPath: string; result: LibraryBackupResult }
+  | { state: 'merge_completed'; sourcePath: string; result: LibraryMergeResult }
   | { state: 'failed'; destinationPath?: string; error: string }
 
 export interface BootstrapPayload {

@@ -83,6 +83,7 @@ const api: MuseAPI = {
     getPlatform: () => ipcRenderer.invoke(IPC.desktop.getPlatform),
     libraryTransferStatus: () => ipcRenderer.invoke(IPC.desktop.libraryTransferStatus),
     backupLibrary: () => ipcRenderer.invoke(IPC.desktop.backupLibrary),
+    mergeLibrary: () => ipcRenderer.invoke(IPC.desktop.mergeLibrary),
     openExistingLibrary: () => ipcRenderer.invoke(IPC.desktop.openExistingLibrary)
   },
   folders: {

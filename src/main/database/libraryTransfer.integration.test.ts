@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, rename, rm } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, rename, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
@@ -8,6 +8,7 @@ import { DatabaseService } from './DatabaseService'
 import { AssetRepository } from './repositories/AssetRepository'
 import { FolderRepository } from './repositories/FolderRepository'
 import { TagRepository } from './repositories/TagRepository'
+import { AssetSourceRepository } from './repositories/AssetSourceRepository'
 import { AssetImporter } from '../services/assets/AssetImporter'
 import { ensureLibrary } from '../services/filesystem/LibraryPaths'
 import { findExistingLibraries, LibraryTransferService, relocateManagedPaths, validateExistingLibrary } from '../services/filesystem/LibraryTransferService'
@@ -86,5 +87,71 @@ describe('Library backup and computer migration', () => {
         }
       } finally { movedDatabase.close() }
     } finally { sourceDatabase.close() }
+  }, 30_000)
+
+  it('repeatedly merges two evolving Libraries without duplicating the same image', async () => {
+    const workspace = await mkdtemp(join(tmpdir(), 'muse-merge-'))
+    cleanup.push(workspace)
+    const inputRoot = join(workspace, 'inputs')
+    await mkdir(inputRoot, { recursive: true })
+    const shared = join(inputRoot, 'shared.jpg')
+    const sharedCopy = join(inputRoot, 'shared-copy.jpg')
+    const homeOnly = join(inputRoot, 'home-only.jpg')
+    const officeOnly = join(inputRoot, 'office-only.jpg')
+    await sharp({ create: { width: 420, height: 520, channels: 3, background: '#764ba2' } }).jpeg().toFile(shared)
+    await copyFile(shared, sharedCopy)
+    await sharp({ create: { width: 430, height: 530, channels: 3, background: '#2c7a7b' } }).jpeg().toFile(homeOnly)
+    await sharp({ create: { width: 440, height: 540, channels: 3, background: '#b7791f' } }).jpeg().toFile(officeOnly)
+
+    const homeLibrary = ensureLibrary(join(workspace, 'home', 'Muse Library'))
+    const officeLibrary = ensureLibrary(join(workspace, 'office', 'Muse Library'))
+    const homeDatabase = new DatabaseService(homeLibrary.database)
+    const officeDatabase = new DatabaseService(officeLibrary.database)
+    try {
+      const homeAssets = new AssetRepository(homeDatabase.db, (path) => path)
+      const officeAssets = new AssetRepository(officeDatabase.db, (path) => path)
+      const homeImported = await new AssetImporter(homeLibrary, homeAssets).import([shared, homeOnly])
+      const officeImported = await new AssetImporter(officeLibrary, officeAssets).import([sharedCopy, officeOnly])
+      expect(homeImported.imported).toHaveLength(2)
+      expect(officeImported.imported).toHaveLength(2)
+
+      const sharedHome = homeImported.imported[0]!
+      const homeFolder = new FolderRepository(homeDatabase.db).create('家里精选')
+      homeAssets.attachToFolder([sharedHome.id], homeFolder.id)
+      const homeTag = new TagRepository(homeDatabase.db).create('待整理')
+      new TagRepository(homeDatabase.db).attach([sharedHome.id], homeTag.id)
+      homeAssets.toggleFavorite(sharedHome.id)
+      const analyzedAt = new Date().toISOString()
+      homeDatabase.db.prepare(`INSERT INTO asset_ai_analysis (asset_id,status,schema_version,description,analyzed_at,updated_at,retry_count,result_version)
+        VALUES (?,'completed',1,?,?,?,0,2)`).run(sharedHome.id, '家里电脑已完成的图片分析', analyzedAt, analyzedAt)
+      new AssetSourceRepository(homeDatabase.db).add(sharedHome.id, {
+        pageUrl: 'https://example.com/post/1', imageUrl: 'https://cdn.example.com/photo.jpg',
+        pageTitle: '来源页面', collectedAt: analyzedAt, extensionVersion: 'test'
+      })
+
+      const transfer = new LibraryTransferService(officeDatabase.db, officeLibrary, 'test')
+      const first = await transfer.mergeFrom(homeLibrary.root)
+      expect(first).toMatchObject({ addedAssetCount: 1, duplicateAssetCount: 1, addedFolderCount: 1, addedTagCount: 1, failureCount: 0 })
+      expect(existsSync(first.safetyBackupPath)).toBe(true)
+      expect(officeAssets.stats()).toMatchObject({ total: 3, favorites: 1 })
+      expect(new FolderRepository(officeDatabase.db).list().find((folder) => folder.name === '家里精选')?.assetCount).toBe(1)
+      expect(new TagRepository(officeDatabase.db).list().find((tag) => tag.name === '待整理')?.assetCount).toBe(1)
+      const sharedOfficeId = officeImported.imported[0]!.id
+      expect(officeAssets.get(sharedOfficeId)?.ai?.description).toBe('家里电脑已完成的图片分析')
+      expect(new AssetSourceRepository(officeDatabase.db).list(sharedOfficeId)).toHaveLength(1)
+
+      const second = await transfer.mergeFrom(homeLibrary.root)
+      expect(second).toMatchObject({ addedAssetCount: 0, duplicateAssetCount: 2, addedFolderCount: 0, addedTagCount: 0, failureCount: 0 })
+      expect(officeAssets.stats().total).toBe(3)
+      expect(new FolderRepository(officeDatabase.db).list().filter((folder) => folder.name === '家里精选')).toHaveLength(1)
+      expect(new TagRepository(officeDatabase.db).list().filter((tag) => tag.name === '待整理')).toHaveLength(1)
+      for (const asset of officeAssets.list({ limit: 20 }).items) {
+        expect(officeAssets.getFilePath(asset.id)?.startsWith(officeLibrary.originals)).toBe(true)
+        expect(existsSync(officeAssets.getFilePath(asset.id)!)).toBe(true)
+      }
+    } finally {
+      homeDatabase.close()
+      officeDatabase.close()
+    }
   }, 30_000)
 })

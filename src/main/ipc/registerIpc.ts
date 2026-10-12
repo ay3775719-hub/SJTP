@@ -298,6 +298,30 @@ export function registerIpc(dependencies: IpcDependencies): void {
       throw toPublicError(error)
     }
   })
+  ipcMain.handle(IPC.desktop.mergeLibrary, async () => {
+    const selected = await dependencies.libraryLocation.chooseExisting()
+    if (!selected) return null
+    if (selected === dependencies.library.root) throw new Error('不能把当前 Library 合并到自身')
+    const confirmation = await dialog.showMessageBox({
+      type: 'question',
+      title: '增量合并 Library',
+      message: '把这份 Library 合并到当前 Library？',
+      detail: `来源：\n${selected}\n\nMuse 会按图片内容去重：已有图片不会再次复制，只合并收藏、标签、分组、网页来源和较新的 AI 数据；新图片才会加入。开始前会自动备份当前数据库。`,
+      buttons: ['开始合并', '取消'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    })
+    if (confirmation.response !== 0) return null
+    try {
+      const result = await dependencies.libraryTransfer.mergeFrom(selected)
+      emitChange('asset:created')
+      return result
+    } catch (error) {
+      logger.error('Library merge failed', serializeError(error))
+      throw toPublicError(error)
+    }
+  })
   ipcMain.handle(IPC.desktop.openExistingLibrary, async () => {
     const selected = await dependencies.libraryLocation.chooseExisting()
     if (!selected) return { switched: false }

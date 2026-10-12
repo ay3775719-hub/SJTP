@@ -56,7 +56,7 @@ Muse Library/
 
 Existing Libraries using `muse.sqlite3` remain supported.
 
-## Library backup and migration
+## Library backup, migration and incremental merge
 
 Muse stores originals and all organization state inside one Library. Use **Settings → Library 备份与迁移 → 备份整个 Library** before moving to another computer. The backup contains:
 
@@ -64,7 +64,11 @@ Muse stores originals and all organization state inside one Library. Use **Setti
 - the SQLite snapshot with folders, folder membership, tags, favorites, Smart Collections, AI metadata, web provenance and local embeddings;
 - thumbnails required for an immediately usable Gallery.
 
-On the other computer, install Muse and choose **打开已有 Library**. Managed absolute paths are rebased automatically when the Library is moved to another directory or drive. Cache and nested historical backups are intentionally not copied. Do not open the same SQLite Library from two computers at the same time through a cloud-synced folder.
+On the other computer, install Muse and choose **打开已有 Library** when you want to replace the current Library completely. Managed absolute paths are rebased automatically when the Library is moved to another directory or drive. Cache and nested historical backups are intentionally not copied.
+
+For ongoing work on two computers, create a fresh full backup on one computer, move that backup to the other computer, then choose **Settings → Library 备份与同步 → 合并另一份 Library**. Muse compares the SHA-256 content hash of every original image, copies only new images, and merges folders, tags, favorites, ratings, sources and AI metadata for duplicates. The same Library can be merged repeatedly: already imported images and relationships are skipped, and Muse creates a database restore point under `backups/` before each merge.
+
+Repeat the same process in the other direction when you want to bring the combined changes back. Do not open the same SQLite Library from two computers at the same time through a cloud-synced folder.
 
 > A Muse folder shown in the sidebar is database-backed organization. Copying only `originals/` does not preserve it; migrating the complete Library does.
 
