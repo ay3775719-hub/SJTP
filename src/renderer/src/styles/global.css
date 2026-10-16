@@ -51,7 +51,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(76, 116, 255
   overflow: hidden;
 }
 .sidebar-titlebar { min-height: 66px; display: flex; align-items: center; justify-content: space-between; padding-left: 20px; border-bottom: 1px solid rgba(255,255,255,.025); }
-.brand { font-size: 17px; font-weight: 600; letter-spacing: -.25px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 600; letter-spacing: -.25px; }
+.brand img { width: 28px; height: 28px; object-fit: contain; }
 .window-controls { height: 40px; margin-left: auto; display: flex; align-items: stretch; }
 .window-controls button { width: 43px; display: grid; place-items: center; color: var(--text-soft); }
 .window-controls button:hover { background: rgba(255,255,255,.08); color: var(--text); }

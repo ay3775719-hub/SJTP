@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "npm run typecheck && electron-vite build",
+    "build": "npm run build:icons && npm run typecheck && electron-vite build",
+    "build:icons": "node scripts/build-icons.mjs",
     "build:extension": "node scripts/build-extension.mjs",
     "build:native-host": "node scripts/build-native-host.mjs",
     "dist": "npm run build && electron-builder",
@@ -60,12 +61,16 @@
       "package.json"
     ],
     "asar": true,
+    "extraResources": [
+      { "from": "build/icons/icon.png", "to": "icon.png" }
+    ],
     "asarUnpack": [
       "node_modules/sharp/**/*",
       "node_modules/@img/**/*",
       "node_modules/onnxruntime-node/**/*"
     ],
     "win": {
+      "icon": "build/icons/icon.ico",
       "target": [
         "nsis",
         "portable"
@@ -92,6 +97,7 @@
       "artifactName": "Muse-Portable-${version}-${arch}.${ext}"
     },
     "mac": {
+      "icon": "build/icons/icon.icns",
       "target": [
         {
           "target": "dmg",

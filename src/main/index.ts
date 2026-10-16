@@ -114,6 +114,8 @@ function createWindow(stateService: WindowStateService): BrowserWindow {
     ...state,
     minWidth: 1120,
     minHeight: 700,
+    title: 'Muse',
+    icon: app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(app.getAppPath(), 'build', 'icons', 'icon.png'),
     show: false,
     frame: isMac,
     titleBarStyle: isMac ? 'hiddenInset' : 'hidden',

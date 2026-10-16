@@ -12,7 +12,7 @@ await mkdir(outputDir, { recursive: true })
 await compile('MuseWebCollectorHost.cs', 'MuseWebCollectorHost.exe')
 await compile('MuseClipboardHost.cs', 'MuseClipboardHost.exe', ['/reference:System.Windows.Forms.dll', '/reference:System.Drawing.dll'])
 await compile('MuseFileDragHost.cs', 'MuseFileDragHost.exe', ['/reference:System.Windows.Forms.dll', '/reference:System.Drawing.dll'], 'winexe')
-await compile('MuseLatestLauncher.cs', 'MuseLatestLauncher.exe', ['/reference:System.Windows.Forms.dll'])
+await compile('MuseLatestLauncher.cs', 'MuseLatestLauncher.exe', ['/reference:System.Windows.Forms.dll', `/win32icon:${join(root, 'build', 'icons', 'icon.ico')}`])
 
 async function compile(sourceName, outputName, references = [], target = 'exe') {
   const source = join(root, 'native-host', sourceName)

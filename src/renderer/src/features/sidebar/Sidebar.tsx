@@ -11,6 +11,7 @@ import { useNaturalSearchStore } from '../../stores/useNaturalSearchStore'
 import { useDuplicateStore } from '../../stores/useDuplicateStore'
 import { useMuseAgentStore } from '../../stores/useMuseAgentStore'
 import { showNotice, useNoticeStore } from '../../stores/useNoticeStore'
+import museIcon from '../../assets/muse-icon.png'
 
 interface NavItemProps {
   icon: ComponentType<IconProps>
@@ -156,7 +157,7 @@ export function Sidebar(): React.JSX.Element {
   return (
     <aside className="sidebar">
       <div className="sidebar-titlebar app-drag-region" onDoubleClick={museApi.window.toggleMaximize}>
-        <div className="brand">Muse</div>
+        <div className="brand"><img src={museIcon} alt="" />Muse</div>
       </div>
       <div className="sidebar-scroll">
         <nav className="primary-nav" aria-label="素材导航">
