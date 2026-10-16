@@ -15,7 +15,33 @@ await mkdir(rendererAssets, { recursive: true })
 await sharp(source).resize(128, 128).png().toFile(join(rendererAssets, 'muse-icon.png'))
 
 const sizes = [16, 24, 32, 48, 64, 128, 256]
-const images = await Promise.all(sizes.map(size => sharp(source).resize(size, size).png().toBuffer()))
+// Traditional bitmap entries let Explorer and older icon readers load every
+// size without depending on PNG support inside ICO files.
+const images = await Promise.all(sizes.map(async size => {
+  const rgba = await sharp(source).resize(size, size).ensureAlpha().raw().toBuffer()
+  const pixels = Buffer.alloc(size * size * 4)
+  const maskStride = Math.ceil(size / 32) * 4
+  const mask = Buffer.alloc(maskStride * size)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const sourceOffset = (y * size + x) * 4
+      const targetOffset = ((size - 1 - y) * size + x) * 4
+      pixels[targetOffset] = rgba[sourceOffset + 2]
+      pixels[targetOffset + 1] = rgba[sourceOffset + 1]
+      pixels[targetOffset + 2] = rgba[sourceOffset]
+      pixels[targetOffset + 3] = rgba[sourceOffset + 3]
+      if (rgba[sourceOffset + 3] === 0) mask[(size - 1 - y) * maskStride + (x >> 3)] |= 0x80 >> (x & 7)
+    }
+  }
+  const bitmapHeader = Buffer.alloc(40)
+  bitmapHeader.writeUInt32LE(40, 0)
+  bitmapHeader.writeInt32LE(size, 4)
+  bitmapHeader.writeInt32LE(size * 2, 8)
+  bitmapHeader.writeUInt16LE(1, 12)
+  bitmapHeader.writeUInt16LE(32, 14)
+  bitmapHeader.writeUInt32LE(pixels.length + mask.length, 20)
+  return Buffer.concat([bitmapHeader, pixels, mask])
+}))
 const header = Buffer.alloc(6 + 16 * sizes.length)
 header.writeUInt16LE(1, 2)
 header.writeUInt16LE(sizes.length, 4)
