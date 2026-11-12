@@ -11,6 +11,8 @@ interface SimilarityView {
 }
 
 interface PreviousGalleryView { assets: Asset[]; total: number; nextCursor: string | null; query: AssetQuery; selectedIds: Set<string>; focusedId: string | null; anchorId: string | null; scrollTop: number }
+interface GalleryPosition { loadedCount: number; scrollTop: number; focusedId: string | null; anchorId: string | null; selectedIds: string[] }
+const galleryViewKey = (query: AssetQuery): string => JSON.stringify(Object.entries(query).filter(([key, value]) => key !== 'cursor' && key !== 'limit' && value !== undefined).sort(([a], [b]) => a.localeCompare(b)))
 import { museApi } from '../api/client'
 import { showNotice, useNoticeStore } from './useNoticeStore'
 
@@ -36,6 +38,8 @@ interface AssetState {
   agentResultTitle: string | null
   previousGalleryView: PreviousGalleryView | null
   galleryScrollTop: number
+  galleryPositions: Record<string, GalleryPosition>
+  navigationRequestId: number
   initialize(): Promise<void>
   refreshFromDatabase(): Promise<void>
   loadAssets(nextQuery?: AssetQuery): Promise<void>
@@ -84,6 +88,7 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   previewContext: null,
   undoDeletedIds: [],
   similarity: null, agentResultTitle: null, previousGalleryView: null, galleryScrollTop: 0,
+  galleryPositions: {}, navigationRequestId: 0,
 
   initialize: async () => {
     set({ loading: true, error: null })
@@ -102,6 +107,7 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   refreshFromDatabase: async () => {
     try {
       const state = get()
+      if (state.loading) return
       const bootstrap = await museApi.app.getBootstrap()
       if (state.similarity) {
         const result = await museApi.visualSimilarity.findSimilar(state.similarity.source.id)
@@ -112,32 +118,62 @@ export const useAssetStore = create<AssetState>((set, get) => ({
       }
       const activeCollectionExists = !state.query.smartCollectionId || bootstrap.smartCollections.some((collection) => collection.id === state.query.smartCollectionId)
       const query = activeCollectionExists ? state.query : { ...state.query, smartCollectionId: undefined }
-      const page = await museApi.assets.list(query)
-      const focusedStillExists = page.items.some((asset) => asset.id === state.focusedId)
-      const selected = new Set([...state.selectedIds].filter((id) => page.items.some((asset) => asset.id === id)))
-      set({ bootstrap, query, assets: page.items, total: page.total, nextCursor: page.nextCursor, ...(focusedStillExists ? { selectedIds: selected } : { focusedId: null, selectedIds: new Set<string>(), anchorId: null, previewOpen: false }) })
+      // A metadata change (including opening a preview) must not collapse an
+      // infinite-scroll gallery back to its first page.
+      let page = await museApi.assets.list({ ...query, cursor: undefined })
+      const items = [...page.items]
+      while (page.nextCursor && items.length < Math.max(state.assets.length, get().assets.length)) {
+        if (get().query !== state.query || get().loading) return
+        page = await museApi.assets.list({ ...query, cursor: page.nextCursor })
+        if (!page.items.length) break
+        items.push(...page.items)
+      }
+      const current = get()
+      if (current.query !== state.query || current.loading || current.similarity) return
+      const focusedStillExists = items.some((asset) => asset.id === current.focusedId)
+      const selected = new Set([...current.selectedIds].filter((id) => items.some((asset) => asset.id === id)))
+      set({ bootstrap, query, assets: items, total: page.total, nextCursor: page.nextCursor, ...(focusedStillExists ? { selectedIds: selected } : { focusedId: null, selectedIds: new Set<string>(), anchorId: null, previewOpen: false }) })
     } catch (error) { set({ error: messageFor(error) }) }
   },
 
   loadAssets: async (nextQuery) => {
-    const query = nextQuery ?? get().query
-    set({ loading: true, error: null })
+    const previous = get()
+    const query = { ...(nextQuery ?? previous.query), cursor: undefined }
+    const galleryPositions = { ...previous.galleryPositions }
+    if (!previous.loading && !previous.similarity && !previous.agentResultTitle) {
+      galleryPositions[galleryViewKey(previous.query)] = { loadedCount: previous.assets.length, scrollTop: previous.galleryScrollTop, focusedId: previous.focusedId, anchorId: previous.anchorId, selectedIds: [...previous.selectedIds] }
+    }
+    const position = galleryPositions[galleryViewKey(query)]
+    const navigationRequestId = previous.navigationRequestId + 1
+    set({ loading: true, loadingMore: false, error: null, query, galleryPositions, navigationRequestId, previewOpen: false, previewContext: null })
     try {
-      const page = await museApi.assets.list(query)
-      const focusedStillExists = page.items.some((asset) => asset.id === get().focusedId)
+      let page = await museApi.assets.list(query)
+      const items = [...page.items]
+      while (page.nextCursor && position && items.length < position.loadedCount) {
+        if (get().navigationRequestId !== navigationRequestId) return
+        page = await museApi.assets.list({ ...query, cursor: page.nextCursor })
+        if (!page.items.length) break
+        items.push(...page.items)
+      }
+      if (get().navigationRequestId !== navigationRequestId) return
+      const ids = new Set(items.map(asset => asset.id))
       const effectiveQuery = page.resultSetId ? { ...query, searchResultSetId: page.resultSetId } : query
-      set({ assets: page.items, total: page.total, nextCursor: page.nextCursor, loading: false, query: effectiveQuery, similarity: null, agentResultTitle: null, previousGalleryView: null, ...(focusedStillExists ? {} : { focusedId: null, selectedIds: new Set<string>(), anchorId: null }) })
-    } catch (error) { set({ error: messageFor(error), loading: false }) }
+      set({ assets: items, total: page.total, nextCursor: page.nextCursor, loading: false, query: effectiveQuery, similarity: null, agentResultTitle: null, previousGalleryView: null,
+        galleryScrollTop: position?.scrollTop ?? 0,
+        focusedId: position?.focusedId && ids.has(position.focusedId) ? position.focusedId : null,
+        selectedIds: new Set(position?.selectedIds.filter(id => ids.has(id)) ?? []),
+        anchorId: position?.anchorId && ids.has(position.anchorId) ? position.anchorId : null })
+    } catch (error) { if (get().navigationRequestId === navigationRequestId) set({ error: messageFor(error), loading: false }) }
   },
 
   loadMore: async () => {
-    const { nextCursor, loadingMore, query, similarity } = get()
-    if (similarity) return
+    const { nextCursor, loadingMore, query, similarity, loading } = get()
+    if (similarity || loading) return
     if (!nextCursor || loadingMore) return
     set({ loadingMore: true })
     try {
       const page = await museApi.assets.list({ ...query, cursor: nextCursor })
-      set((state) => ({ assets: [...state.assets, ...page.items], total: page.total, nextCursor: page.nextCursor }))
+      set((state) => state.query !== query || state.nextCursor !== nextCursor ? state : ({ assets: [...state.assets, ...page.items], total: page.total, nextCursor: page.nextCursor }))
     } catch (error) { set({ error: messageFor(error) }) }
     finally { set({ loadingMore: false }) }
   },

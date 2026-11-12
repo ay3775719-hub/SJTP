@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FileImage, Star } from '@phosphor-icons/react'
 import type { Asset } from '@shared/types/domain'
 import { useAssetStore } from '../../stores/useAssetStore'
@@ -63,12 +63,12 @@ export function VirtualizedMasonry(): React.JSX.Element {
   const [scrollTop, setScrollTop] = useState(0)
   const [dragging, setDragging] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = containerRef.current
-    if (!element) return
+    if (!element || loading) return
     element.scrollTop = galleryScrollTop
-    setScrollTop(galleryScrollTop)
-  }, [similarity?.source.id])
+    setScrollTop(element.scrollTop)
+  }, [query, similarity?.source.id, loading, width, height])
 
   const layout = useMemo(() => {
     const gap = 8, contentWidth = Math.max(1, width - 40), desiredWidth = 155 + zoom * 80
@@ -91,7 +91,7 @@ export function VirtualizedMasonry(): React.JSX.Element {
   const getDroppedPaths = (files: FileList): string[] => Array.from(files).map((file) => museApi.files.getPath(file)).filter(Boolean)
 
   return (
-    <div ref={containerRef} className="gallery-scroll" onScroll={(event) => { setScrollTop(event.currentTarget.scrollTop); setGalleryScrollTop(event.currentTarget.scrollTop); if (event.currentTarget.scrollHeight - event.currentTarget.scrollTop - event.currentTarget.clientHeight < 900) void loadMore() }}
+    <div ref={containerRef} className="gallery-scroll" onScroll={(event) => { if (loading) return; setScrollTop(event.currentTarget.scrollTop); setGalleryScrollTop(event.currentTarget.scrollTop); if (event.currentTarget.scrollHeight - event.currentTarget.scrollTop - event.currentTarget.clientHeight < 900) void loadMore() }}
       onDragEnter={(event) => { if (event.dataTransfer.types.includes('Files')) { event.preventDefault(); setDragging(true) } }}
       onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault() }}
       onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }}
